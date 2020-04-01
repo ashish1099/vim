@@ -1,0 +1,100 @@
+l,v
+,V
+filetype plugin indent on,V
+set expandtab,V
+set shiftwidth=2,V
+set tabstop=2,V
+set smartindent,V
+filetype off,V
+set nocompatible,V
+:s,V
+      ,V
+104.155.205.150 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDL6erbsn9z+MuMjs8Ryo+jVSufwpPhgs6DaBxBfEc8rYNNchNChE552zAj/fRrDGtozeCv4OKYqVSkxTbUAPOk89nx+FpGXtLdjE2wrpUhYeZnDAnlc09ffAvzJaamrdQkCiHdIL9308k9yV9o2Hm8BIW5OtVONNHK1yIaTn12o62b38RXwN6bT87gZ0vbU5QLIbV681WVptiyEEsmUXcdOEujfPxaxfuGLC/moqFd+chMxqCbE0m8Kojj459Rn35ReW98SVBAEo0e6d5mUyi/+gm9QqszIDSyn7xRWBTa3lDnxGpqsSpiV1be2fZtHF81TcDEySbd2gutJ8irzumf,V
+#,v
+,,v
+c,v
+r,v
+m,v
+i,v
+v,v
+.,v
+    $address01=$ipaddress,V
+ ,v
+p,v
+w,v
+s,v
+*,v
+d,v
+a,v
+o,v
+u,v
+    drbd_resource { "upload" : host01 => "idcs2", host02 => "idcs3", size => "100GB", physical_volume => "/dev/sda6" },V
+/dev/mapper/vg01-downloads;,v
+    $address02=$ipaddress,V
+    $disk01="$volume_group-$name",V
+    },V
+    physical_volume { $physical_volume : ensure => present }    volume_group { $volume_group : ensure => present , physical_volumes => $physical_volume }    logical_volume { $name : ensure => present, size => $size, volume_group => $volume_group },v
+    $secondary_address = ,V
+    $address,,V
+    $primary_address,,V
+y,v
+    $primary_host,,V
+_,v
+primary_disk,v
+    $primary_disk,V
+downloads,v
+9,v
+8,v
+7,v
+    $port=7789+$devnum,V
+web,v
+    "web"       => { devnum => 1, mountpoint => "/web" },,V
+0,v
+    "home"       => { devnum => 0, mountpoint => "/home" },,V
+set number,V
+",v
+e,v
+t,v
+k,v
+b,v
+f,v
+/,v
+n,v
+		"/usr/local/bin/filebucket_cmie" : ensure => present, source => "puppet:///modules/baseos/filebucket", owner => 'root', group => 'root', mode => 755;,V
+		"/etc/a2ps-site.cfg" : 		ensure => present, source => "puppet:///modules/baseos/a2ps-site.cfg", require => Package["a2ps"]; ,V
+	augeas { "ssh_DNS" : context => "/files/etc/ssh/sshd_config/",,V
+UseDNS no,V
+set UseDNS n,V
+	file { '/etc/php5/cli/php.ini' : ensure => present, content => template("server/php/php.erb"), require => Package["php5"] }	file { "/etc/php5/fastcgi/php.ini" : ensure => present, content => template("server/php/fastcgi-php.erb") },v
+-,v
+include_path = ".:/usr/share/php5:/usr/share/php5/PEAR:/web/portalconf:/web/cmie_include",v
+<% if @hostname == "shipkila" or @hostname == ",V
+/web/portalconf:/web/sitedata:/web/incl:/web/data:/web/mpdata:/web/king:/web/queen:/web/jack:/tmp:/transdb/dontback:/usr/share/fonts/truetype:/wds/dontback/hhs:/web/uploads:/gentmp:/transdb/SEBI/EDIFAR/INTERIM:/landing/mponline:/landing/cmieonline:/dashboard",v
+	if $hostname == "nathula" or $hostname == "shipkila" or $hostname == "foo03" { ,V
+open_basedir = "/web/portalconf:/web/sitedata:/web/incl:/web/data:/web/mpdata:/web/king:/web/queen:/web/jack:/tmp:/transdb/dontback:/usr/share/fonts/truetype:/wds/dontback/hhs:/web/uploads:/gentmp:/transdb/SEBI/EDIFAR/INTERIM:/landing/mponline:/landing/cmieonline:/dashboard",V
+<% end -%>,V
+open_basedir = "/opt/other/src/xcache-3.2.0/htdocs:/web/domains:/web/portalconf:/web/cmie_include:/web/sitedata:/tmp:/usr/share/fonts/truetype",V
+if @hostname == "shipkila" or @hostname == "nathula" -%>,V
+<% end ,V
+open_basedir = "/opt/other/src/xcache-3.2.0/htdocs:/web/portalconf:/web/sitedata:/web/incl:/web/data:/web/mpdata:/web/king:/web/queen:/web/jack:/tmp:/transdb/dontback:/usr/share/fonts/truetype:/wds/dontback/hhs:/web/uploads:/gentmp:/transdb/SEBI/EDIFAR/INTERIM:/landing/mponline:/landing/cmieonline:/dashboard",V
+if @operatingsystemrelease == "13.2" and @hostname != "shipkila" and @hostname != "nathula" -%>,V
+<% if @operatingsystemrelease == "12.3" or @operatingsystemrelease == "13.1" -%>,V
+shipkila,v
+        "shipkila" : { $base_dir = "/opt/other/src/xcache-3.2.0/htdocs:/web/domains:/web/portalconf:/web/cmie_include:/web/sitedata:/tmp:/usr/share/fonts/truetype",V
+  },V
+     monit::services { "apache" : apache => true },V
+  } else {,V
+    monit::services { "apache" : apache => true, extra_args => true },V
+  if $hostname == "shipkila" or $hostname == "nathula" or $hostname == "foo03" {,V
+    "shipkila" : { monit::services { "apache" : apache => true, extra_args => true } },V
+	,v
+z,v
+h,v
+g,v
+      $mod_name_13_2 = [ socache_shmcb ],V
+NameVirtualHost *:80,V
+king,v
+	#},V
+	#	package { ['nss-softokn-freebl.i686', 'glibc.i686', 'libgcc.i686'] : ensure => present },V
+	#if $operatingsystem == "CentOS" {,V
+  monit::services { "apache" : apache => true, extra_args => true },v
