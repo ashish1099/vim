@@ -27,7 +27,7 @@ map <C-t> :tabnew<CR>
 
 set background=dark
 let g:solarized_termtrans = 1
-colorscheme solarized
+"olorscheme solarized
 
 " indent-guis plugin
 colorscheme default
@@ -53,6 +53,8 @@ let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
 let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 0
+let g:syntastic_quiet_messages = { "type": "style" }
+let g:syntastic_yaml_checkers = [ "yamllint" ]
 
 "let g:syntastic_
 
@@ -60,6 +62,10 @@ let g:syntastic_check_on_wq = 0
 "au BufNewFile,BufRead *.yaml,*.yml so ~/.vim/yaml.vim
 
 let g:SuperTabDefaultCompletionType = "context"
+
+"let g:auto_save = 1
+"let g:auto_save_events = ["InsertLeave", "TextChanged"]
+
 
 execute pathogen#helptags()
 execute pathogen#infect()
