@@ -27,6 +27,10 @@ alias nextcloud_ps="docker-compose -f /home/ashish/github/infra/docker-compose/n
 alias ddns_ps="docker-compose -f /home/ashish/github/infra/docker-compose/ddns/docker-compose.yml ps"
 alias aws-login='$(aws ecr get-login --no-include-email)'
 
+# Bash Complettion
+source <(gopass completion bash)
+source <(kubectl completion bash)
+
 # Variables
 PS0='$(echo $SECONDS > "$INTERACTIVE_BASHPID_TIMER")'
 INTERACTIVE_BASHPID_TIMER="/tmp/${USER}.START.$$"
