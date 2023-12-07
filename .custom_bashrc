@@ -1,0 +1,67 @@
+## Custom settings
+
+# Google IDP ID: C019ti8in
+# Google SP ID: 759970038732
+
+
+# Export
+export GPG_TTY=$(tty)
+export SSH_AUTH_SOCK=/run/user/1000/gnupg/S.gpg-agent.ssh
+export GOPATH=/home/ashish/go
+export PASSWORD_STORE_DIR=/home/ashish/gitlab/pass
+export PASSWORD_STORE_ENABLE_EXTENSIONS=true
+export KUBECONFIG=$HOME/.kube/config
+export PATH="${PATH}:${HOME}/.krew/bin:${HOME}/go/bin"
+
+# Customers
+## BW7
+#export KOPS_STATE_STORE=s3://kops.blackwoodseven.com
+#export AWS_PROFILE=bw7
+export AWS_DEFAULT_REGION=eu-west-1
+
+# Unlimited history storage
+HISTSIZE=100000000
+HISTFILESIZE=1000000000
+HISTTIMEFORMAT="%F %T "
+
+# Aliases
+alias ashish_obmondo="ssh dev-ashish"
+alias production="cd /home/ashish/gitea/puppet/envs/production"
+alias nextcloud_ps="docker-compose -f /home/ashish/github/infra/docker-compose/nextcloud/docker-compose.yml ps"
+alias ddns_ps="docker-compose -f /home/ashish/github/infra/docker-compose/ddns/docker-compose.yml ps"
+alias aws-login='$(aws ecr get-login --no-include-email)'
+
+# Variables
+PS0='$(echo $SECONDS > "$INTERACTIVE_BASHPID_TIMER")'
+INTERACTIVE_BASHPID_TIMER="/tmp/${USER}.START.$$"
+
+function _update_ps1() {
+  local __ERRCODE=$?
+
+  local __DURATION=0
+  if [ -e $INTERACTIVE_BASHPID_TIMER ]; then
+    local __END=$SECONDS
+    local __START=$(cat "$INTERACTIVE_BASHPID_TIMER")
+    __DURATION="$(($__END - ${__START:-__END}))"
+    rm -f "$INTERACTIVE_BASHPID_TIMER"
+  fi
+
+  PS1="$($GOPATH/bin/powerline-go \
+    -error $__ERRCODE \
+    -colorize-hostname \
+    -newline \
+    -numeric-exit-codes \
+    -modules "duration,time,venv,user,host,ssh,cwd,perms,aws,docker,docker-context,terraform-workspace,kube,git,hg,jobs,exit,root" \
+    -duration $__DURATION \
+    -priority "duration,time,root,cwd,user,host,ssh,perms,aws,docker,docker-context,terraform-workspace,kube,git-branch,git-status,hg,jobs,exit,cwd-path")"
+}
+
+if [ "$TERM" != "linux" ] && [ -f "$GOPATH/bin/powerline-go" ]; then
+  PROMPT_COMMAND="_update_ps1; $PROMPT_COMMAND"
+fi
+
+# Volume only on headphone.
+alias hphoneonly="amixer -c0 sset 'Auto-Mute Mode' 'Line Out+Speaker'"
+alias speakeronly="amixer -c0 sset 'Auto-Mute Mode' 'Disabled'"
+alias assh_build="assh config build > ~/.ssh/config"
+source <(gopass completion bash)

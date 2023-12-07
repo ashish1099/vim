@@ -24,7 +24,7 @@ function! Test_Ranged_Fixit_Works()
 
   function! SelectEntry( id ) closure
     redraw
-    call test_feedinput( "4\<CR>" )
+    call test_feedinput( "3\<CR>" )
   endfunction
 
   call timer_start( 5000, funcref( 'SelectEntry' ) )
@@ -33,14 +33,13 @@ function! Test_Ranged_Fixit_Works()
 
   call assert_match( '        String \(x\|string\) = "Did something useful: "' .
                      \ ' + w.getWidgetInfo();', getline( 34 ) )
-  call assert_match( '\t\tSystem.out.println( \(x\|string\) );', getline( 35 ) )
-  %bwipeout!
+  call assert_match( '        System.out.println( \(x\|string\) );', getline( 35 ) )
   delfunction SelectEntry
 endfunction
 
 function! Test_Unresolved_Fixit_Works()
-  call youcompleteme#test#setup#OpenFile( '/test/testdata/cpp/fixit.c', {} )
-  call setpos( '.', [ 0, 3, 2 ] )
+  call youcompleteme#test#setup#OpenFile( '/test/testdata/cpp/fixit.cpp', {} )
+  call setpos( '.', [ 0, 3, 15 ] )
   call assert_equal( '  printf("%s",1);', getline( '.' ) )
   function! SelectEntry( id ) closure
     redraw
@@ -49,8 +48,8 @@ function! Test_Unresolved_Fixit_Works()
   call timer_start( 2000, funcref( 'SelectEntry' ) )
   YcmCompleter FixIt
   redraw
-  call assert_equal( '  auto dummy = 1;', getline( '.' ) )
-  call assert_equal( '  printf("%s", dummy);', getline( 4 ) )
+  call assert_equal( '  auto placeholder = 1;', getline( 3 ) )
+  call assert_equal( '  printf("%s", placeholder);', getline( 4 ) )
   %bwipeout!
   delfunction SelectEntry
 endfunction

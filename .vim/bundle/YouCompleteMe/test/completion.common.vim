@@ -1,53 +1,4 @@
-function! s:CheckCompletionItems( expected_props, ... )
-  let prop = 'abbr'
-  if a:0 > 0
-    let prop = a:1
-  endif
-
-  let items = complete_info( [ 'items' ] )[ 'items' ]
-  let abbrs = []
-  for item in items
-    call add( abbrs, get( item, prop ) )
-  endfor
-
-  call assert_equal( a:expected_props,
-        \ abbrs,
-        \ 'not matched: '
-        \ .. string( a:expected_props )
-        \ .. ' against '
-        \ .. prop
-        \ .. ' in '
-        \ .. string( items )
-        \ .. ' matching '
-        \ .. string( abbrs ) )
-endfunction
-
-function! s:FeedAndCheckMain( keys, func )
-  call timer_start( 500, a:func )
-  call feedkeys( a:keys, 'tx!' )
-endfunction
-
-function! s:FeedAndCheckAgain( keys, func )
-  call timer_start( 500, a:func )
-  call feedkeys( a:keys )
-endfunction
-
-function! s:WaitForCompletion()
-  call WaitForAssert( {->
-        \ assert_true( pyxeval( 'ycm_state.GetCurrentCompletionRequest() is not None' ) )
-        \ } )
-  call WaitForAssert( {->
-        \ assert_true( pyxeval( 'ycm_state.CompletionRequestReady()' ) )
-        \ } )
-  redraw
-  call WaitForAssert( {->
-        \ assert_true( pumvisible(), 'pumvisible()' )
-        \ }, 10000 )
-endfunction
-
-function! s:CheckCurrentLine( expected_value )
-  return assert_equal( a:expected_value, getline( '.' ) )
-endfunction
+scriptencoding utf-8
 
 function! Test_Compl_After_Trigger()
   call youcompleteme#test#setup#OpenFile(
@@ -62,17 +13,16 @@ function! Test_Compl_After_Trigger()
   " Must do the checks in a timer callback because we need to stay in insert
   " mode until done.
   function! Check( id ) closure
-    call s:WaitForCompletion()
+    call WaitForCompletion()
     call feedkeys( "\<ESC>" )
   endfunction
 
-  call s:FeedAndCheckMain( 'cl.', funcref( 'Check' ) )
+  call FeedAndCheckMain( 'cl.', funcref( 'Check' ) )
   " Checks run in insert mode, then exit insert mode.
   call assert_false( pumvisible(), 'pumvisible()' )
 
   call test_override( 'ALL', 0 )
-  %bwipeout!
-endfunctio
+endfunction
 
 function! Test_Force_Semantic_TopLevel()
   call youcompleteme#test#setup#OpenFile(
@@ -81,7 +31,7 @@ function! Test_Force_Semantic_TopLevel()
   call setpos( '.', [ 0, 17, 5 ] )
 
   function! Check( id )
-    cal s:WaitForCompletion()
+    cal WaitForCompletion()
     let items = complete_info( [ 'items' ] )[ 'items' ]
     call assert_equal( 1, len( filter( items, 'v:val.abbr ==# "Foo"' ) ),
           \ 'Foo should be in the suggestions' )
@@ -94,12 +44,11 @@ function! Test_Force_Semantic_TopLevel()
     call feedkeys( "\<ESC>" )
   endfunction
 
-  call s:FeedAndCheckMain( "i\<C-Space>", funcref( 'Check' ) )
+  call FeedAndCheckMain( "i\<C-Space>", funcref( 'Check' ) )
   " Checks run in insert mode, then exit insert mode.
   call assert_false( pumvisible(), 'pumvisible()' )
 
   call test_override( 'ALL', 0 )
-  %bwipeout!
 endfunction
 
 function! Test_Select_Next_Previous()
@@ -113,43 +62,42 @@ function! Test_Select_Next_Previous()
   call test_override( 'char_avail', 1 )
 
   function! Check( id )
-    call s:WaitForCompletion()
+    call WaitForCompletion()
 
-    call s:CheckCurrentLine( '  foo.' )
-    call s:CheckCompletionItems( [ 'c', 'x', 'y' ] )
+    call CheckCurrentLine( '  foo.' )
+    call CheckCompletionItemsContainsExactly( [ 'c', 'x', 'y' ] )
 
-    call s:FeedAndCheckAgain( "\<Tab>", funcref( 'Check2' ) )
+    call FeedAndCheckAgain( "\<Tab>", funcref( 'Check2' ) )
   endfunction
 
   function! Check2( id )
-    call s:WaitForCompletion()
-    call s:CheckCurrentLine( '  foo.c' )
-    call s:CheckCompletionItems( [ 'c', 'x', 'y' ] )
+    call WaitForCompletion()
+    call CheckCurrentLine( '  foo.c' )
+    call CheckCompletionItemsContainsExactly( [ 'c', 'x', 'y' ] )
 
-    call s:FeedAndCheckAgain( "\<Tab>", funcref( 'Check3' ) )
+    call FeedAndCheckAgain( "\<Tab>", funcref( 'Check3' ) )
   endfunction
 
   function! Check3( id )
-    call s:WaitForCompletion()
-    call s:CheckCurrentLine( '  foo.x' )
-    call s:CheckCompletionItems( [ 'c', 'x', 'y' ] )
+    call WaitForCompletion()
+    call CheckCurrentLine( '  foo.x' )
+    call CheckCompletionItemsContainsExactly( [ 'c', 'x', 'y' ] )
 
-    call s:FeedAndCheckAgain( "\<BS>y", funcref( 'Check4' ) )
+    call FeedAndCheckAgain( "\<BS>y", funcref( 'Check4' ) )
   endfunction
 
   function! Check4( id )
-    call s:WaitForCompletion()
-    call s:CheckCurrentLine( '  foo.y' )
-    call s:CheckCompletionItems( [ 'y' ] )
+    call WaitForCompletion()
+    call CheckCurrentLine( '  foo.y' )
+    call CheckCompletionItemsContainsExactly( [ 'y' ] )
     call feedkeys( "\<ESC>" )
   endfunction
 
-  call s:FeedAndCheckMain( 'cl.', funcref( 'Check' ) )
+  call FeedAndCheckMain( 'cl.', funcref( 'Check' ) )
   " Checks run in insert mode, then exit insert mode.
   call assert_false( pumvisible(), 'pumvisible()' )
 
   call test_override( 'ALL', 0 )
-  %bwipeout!
 endfunction
 
 function! Test_Enter_Delete_Chars_Updates_Filter()
@@ -163,42 +111,117 @@ function! Test_Enter_Delete_Chars_Updates_Filter()
   call test_override( 'char_avail', 1 )
 
   function! Check1( id )
-    call s:WaitForCompletion()
-    call s:CheckCompletionItems( [ 'colourOfLine', 'lengthOfLine' ] )
-    call s:FeedAndCheckAgain( "\<BS>", funcref( "Check2" ) )
+    call WaitForCompletion()
+    call CheckCompletionItemsContainsExactly( [ 'colourOfLine', 'lengthOfLine' ] )
+    call FeedAndCheckAgain( "\<BS>", funcref( 'Check2' ) )
   endfunction
 
   function! Check2( id )
-    call s:WaitForCompletion()
-    call s:CheckCompletionItems( [
+    call WaitForCompletion()
+    call CheckCompletionItemsContainsExactly( [
           \ 'operator=(…)',
           \ 'colourOfLine',
           \ 'lengthOfLine',
           \ 'RED_AND_YELLOW' ] )
-    call s:FeedAndCheckAgain( 'w', funcref( 'Check3' ) )
+    call FeedAndCheckAgain( 'w', funcref( 'Check3' ) )
   endfunction
 
   function! Check3( id )
-    call s:WaitForCompletion()
-    call s:CheckCompletionItems( [ 'RED_AND_YELLOW' ] )
+    call WaitForCompletion()
+    call CheckCompletionItemsContainsExactly( [ 'RED_AND_YELLOW' ] )
     " now type something that doesnt match
-    call s:FeedAndCheckAgain( 'this_does_not_match', funcref( 'Check4' ) )
+    call FeedAndCheckAgain( 'this_does_not_match', funcref( 'Check4' ) )
   endfunction
 
   function! Check4( id )
     call WaitForAssert( { -> assert_false( pumvisible() ) } )
-    call s:CheckCurrentLine(
+    call CheckCurrentLine(
           \ '  p->line.colourOfLine = Line::owthis_does_not_match' )
-    call s:CheckCompletionItems( [] )
+    call CheckCompletionItemsContainsExactly( [] )
     call feedkeys( "\<Esc>" )
   endfunction
 
-  call s:FeedAndCheckMain( 'cl:ol', funcref( 'Check1' ) )
+  call FeedAndCheckMain( 'cl:ol', funcref( 'Check1' ) )
   " Checks run in insert mode, then exit insert mode.
   call assert_false( pumvisible(), 'pumvisible()' )
 
   call test_override( 'ALL', 0 )
-  %bwipeout!
+endfunction
+
+function! SetUp_Test_Compl_No_Filetype()
+  call youcompleteme#test#setup#PushGlobal( 'ycm_filetype_whitelist', {
+        \ '*': 1,
+        \ 'ycm_nofiletype': 1
+        \ } )
+  call youcompleteme#test#setup#PushGlobal( 'ycm_filetype_blacklist', {} )
+endfunction
+
+function! Test_Compl_No_Filetype()
+  call assert_false( has_key( g:ycm_filetype_blacklist, 'ycm_nofiletype' ) )
+  enew
+  call setline( '.', 'hello this is some text ' )
+
+  " Even when fileytpe is set to '', the filetype autocommand is triggered, but
+  " apparently, _not_ within this function.
+  doautocmd FileType
+  call assert_equal( 1, b:ycm_completing )
+
+  " Required to trigger TextChangedI
+  " https://github.com/vim/vim/issues/4665#event-2480928194
+  call test_override( 'char_avail', 1 )
+
+  " Must do the checks in a timer callback because we need to stay in insert
+  " mode until done.
+  function! Check( id ) closure
+    call assert_equal( getline( '2' ), 'hell' )
+    call WaitForCompletion()
+    let items = complete_info().items
+    call map( items, {index, value -> value.word} )
+    call assert_equal( [ 'hello' ], items )
+    call feedkeys( "\<ESC>" )
+  endfunction
+
+  call FeedAndCheckMain( 'ohell', funcref( 'Check' ) )
+  " Checks run in insert mode, then exit insert mode.
+  call assert_false( pumvisible(), 'pumvisible()' )
+
+  call test_override( 'ALL', 0 )
+  delfunc! Check
+endfunction
+
+function! TearDown_Test_Compl_No_Filetype()
+  call youcompleteme#test#setup#PopGlobal( 'ycm_filetype_whitelist' )
+  call youcompleteme#test#setup#PopGlobal( 'ycm_filetype_blacklist' )
+endfunction
+
+function! Test_Compl_No_Filetype_Blacklisted()
+  call assert_true( has_key( g:ycm_filetype_blacklist, 'ycm_nofiletype' ) )
+
+  enew
+  call setline( '.', 'hello this is some text ' )
+
+  " Even when fileytpe is set to '', the filetype autocommand is triggered, but
+  " apparently, _not_ within this function.
+  doautocmd FileType
+  call assert_false( exists( 'b:ycm_completing' ) )
+
+  " Required to trigger TextChangedI
+  " https://github.com/vim/vim/issues/4665#event-2480928194
+  call test_override( 'char_avail', 1 )
+
+  " Must do the checks in a timer callback because we need to stay in insert
+  " mode until done.
+  function! Check( id ) closure
+    call assert_false( pumvisible() )
+    call feedkeys( "\<ESC>" )
+  endfunction
+
+  call FeedAndCheckMain( 'ohell', funcref( 'Check' ) )
+  " Checks run in insert mode, then exit insert mode.
+  call assert_false( pumvisible(), 'pumvisible()' )
+
+  call test_override( 'ALL', 0 )
+  delfunc! Check
 endfunction
 
 function! OmniFuncTester( findstart, query )
@@ -209,9 +232,9 @@ function! OmniFuncTester( findstart, query )
 endfunction
 
 function! SetUp_Test_OmniComplete_Filter()
-  let g:ycm_semantic_triggers = {
+  call youcompleteme#test#setup#PushGlobal( 'ycm_semantic_triggers', {
         \ 'omnifunc_test': [ ':', '.' ]
-        \ }
+        \ } )
 endfunction
 
 function! Test_OmniComplete_Filter()
@@ -223,42 +246,41 @@ function! Test_OmniComplete_Filter()
   let s:omnifunc_items = [ 'test', 'testing', 'testy' ]
 
   function! Check1( id )
-    call s:WaitForCompletion()
-    call s:CheckCurrentLine( 'te:te' )
-    call s:CheckCompletionItems( [ 'test', 'testy', 'testing' ], 'word' )
-    call s:FeedAndCheckAgain( 'y', funcref( 'Check2' ) )
+    call WaitForCompletion()
+    call CheckCurrentLine( 'te:te' )
+    call CheckCompletionItemsContainsExactly( [ 'test', 'testy', 'testing' ],
+                                            \ 'word' )
+    call FeedAndCheckAgain( 'y', funcref( 'Check2' ) )
   endfunction
 
   function! Check2( id )
-    call s:WaitForCompletion()
-    call s:CheckCurrentLine( 'te:tey' )
-    call s:CheckCompletionItems( [ 'testy' ], 'word' )
-    call s:FeedAndCheckAgain( "\<C-n>", funcref( 'Check3' ) )
+    call WaitForCompletion()
+    call CheckCurrentLine( 'te:tey' )
+    call CheckCompletionItemsContainsExactly( [ 'testy' ], 'word' )
+    call FeedAndCheckAgain( "\<C-n>", funcref( 'Check3' ) )
   endfunction
 
   function! Check3( id )
-    call s:WaitForCompletion()
-    call s:CheckCurrentLine( 'te:testy' )
-    call s:CheckCompletionItems( [ 'testy' ], 'word' )
-    call s:FeedAndCheckAgain( "\<C-p>", funcref( 'Check4' ) )
+    call WaitForCompletion()
+    call CheckCurrentLine( 'te:testy' )
+    call CheckCompletionItemsContainsExactly( [ 'testy' ], 'word' )
+    call FeedAndCheckAgain( "\<C-p>", funcref( 'Check4' ) )
   endfunction
 
   function! Check4( id )
-    call s:WaitForCompletion()
-    call s:CheckCurrentLine( 'te:tey' )
-    call s:CheckCompletionItems( [ 'testy' ], 'word' )
+    call WaitForCompletion()
+    call CheckCurrentLine( 'te:tey' )
+    call CheckCompletionItemsContainsExactly( [ 'testy' ], 'word' )
     call feedkeys( "\<Esc>" )
   endfunction
 
   call setline(1, 'te:' )
   call setpos( '.', [ 0, 1, 3 ] )
-  call s:FeedAndCheckMain( 'ate', 'Check1' )
-
-  %bwipeout!
+  call FeedAndCheckMain( 'ate', 'Check1' )
 endfunction
 
 function! TearDown_Test_OmniComplete_Filter()
-  unlet g:ycm_semantic_triggers
+  call youcompleteme#test#setup#PopGlobal( 'ycm_semantic_triggers' )
 endfunction
 
 function! Test_OmniComplete_Force()
@@ -270,37 +292,37 @@ function! Test_OmniComplete_Force()
   let s:omnifunc_items = [ 'test', 'testing', 'testy' ]
 
   function! Check1( id )
-    call s:WaitForCompletion()
-    call s:CheckCurrentLine( 'te' )
-    call s:CheckCompletionItems( [ 'test', 'testy', 'testing' ], 'word' )
-    call s:FeedAndCheckAgain( 'y', funcref( 'Check2' ) )
+    call WaitForCompletion()
+    call CheckCurrentLine( 'te' )
+    call CheckCompletionItemsContainsExactly( [ 'test', 'testy', 'testing' ],
+                                            \ 'word' )
+    call FeedAndCheckAgain( 'y', funcref( 'Check2' ) )
   endfunction
 
   function! Check2( id )
-    call s:WaitForCompletion()
-    call s:CheckCurrentLine( 'tey' )
-    call s:CheckCompletionItems( [ 'testy' ], 'word' )
-    call s:FeedAndCheckAgain( "\<C-n>", funcref( 'Check3' ) )
+    call WaitForCompletion()
+    call CheckCurrentLine( 'tey' )
+    call CheckCompletionItemsContainsExactly( [ 'testy' ], 'word' )
+    call FeedAndCheckAgain( "\<C-n>", funcref( 'Check3' ) )
   endfunction
 
   function! Check3( id )
-    call s:WaitForCompletion()
-    call s:CheckCurrentLine( 'testy' )
-    call s:CheckCompletionItems( [ 'testy' ], 'word' )
-    call s:FeedAndCheckAgain( "\<C-p>", funcref( 'Check4' ) )
+    call WaitForCompletion()
+    call CheckCurrentLine( 'testy' )
+    call CheckCompletionItemsContainsExactly( [ 'testy' ], 'word' )
+    call FeedAndCheckAgain( "\<C-p>", funcref( 'Check4' ) )
   endfunction
 
   function! Check4( id )
-    call s:WaitForCompletion()
-    call s:CheckCurrentLine( 'tey' )
-    call s:CheckCompletionItems( [ 'testy' ], 'word' )
+    call WaitForCompletion()
+    call CheckCurrentLine( 'tey' )
+    call CheckCompletionItemsContainsExactly( [ 'testy' ], 'word' )
     call feedkeys( "\<Esc>" )
   endfunction
 
   call setline(1, 'te' )
   call setpos( '.', [ 0, 1, 3 ] )
-  call s:FeedAndCheckMain( "a\<C-Space>", 'Check1' )
-  %bwipeout!
+  call FeedAndCheckMain( "a\<C-Space>", 'Check1' )
 endfunction
 
 function! Test_Completion_FixIt()
@@ -314,35 +336,32 @@ function! Test_Completion_FixIt()
   call youcompleteme#test#setup#OpenFile(
         \ 'test/testdata/cpp/auto_include.cc', {} )
 
-  function Check1( id )
-    call s:WaitForCompletion()
-    call s:CheckCurrentLine( 'do_a' )
-    call s:CheckCompletionItems( [ 'do_a_thing(Thing thing)',
-                                 \ 'do_another_thing()' ] )
-    call s:FeedAndCheckAgain( "\<Tab>" , funcref( 'Check2' ) )
+  function! Check1( id )
+    call WaitForCompletion()
+    call CheckCurrentLine( 'do_a' )
+    call CheckCompletionItemsHasItems( [ 'do_a_thing(Thing thing)',
+                                       \ 'do_another_thing()' ] )
+    call FeedAndCheckAgain( "\<Tab>" , funcref( 'Check2' ) )
   endfunction
 
-  function Check2( id )
-    call s:WaitForCompletion()
-    call s:CheckCurrentLine( 'do_a_thing' )
-    call s:CheckCompletionItems( [ 'do_a_thing(Thing thing)',
-                                 \ 'do_another_thing()' ] )
-    call s:FeedAndCheckAgain( '(' , funcref( 'Check3' ) )
+  function! Check2( id )
+    call WaitForCompletion()
+    call CheckCurrentLine( 'do_a_thing' )
+    call CheckCompletionItemsHasItems( [ 'do_a_thing(Thing thing)',
+                                       \ 'do_another_thing()' ] )
+    call FeedAndCheckAgain( '(' , funcref( 'Check3' ) )
   endfunction
 
 
-  function Check3( id )
+  function! Check3( id )
     call WaitForAssert( {-> assert_false( pumvisible(), 'pumvisible()' ) } )
-    call s:CheckCurrentLine( 'do_a_thing(' )
+    call CheckCurrentLine( 'do_a_thing(' )
     call assert_equal( '#include "auto_include.h"', getline( 1 ) )
     call feedkeys( "\<Esc>" )
   endfunction
 
-
   call setpos( '.', [ 0, 3, 1 ] )
-  call s:FeedAndCheckMain( "Ado_a\<C-Space>", funcref( 'Check1' ) )
-
-  %bwipeout!
+  call FeedAndCheckMain( "Ado_a\<C-Space>", funcref( 'Check1' ) )
 endfunction
 
 function! Test_Select_Next_Previous_InsertModeMapping()
@@ -358,50 +377,160 @@ function! Test_Select_Next_Previous_InsertModeMapping()
   call test_override( 'char_avail', 1 )
 
   function! Check( id )
-    call s:WaitForCompletion()
+    call WaitForCompletion()
 
-    call s:CheckCurrentLine( '  foo.' )
-    call s:CheckCompletionItems( [ 'c', 'x', 'y' ] )
+    call CheckCurrentLine( '  foo.' )
+    call CheckCompletionItemsContainsExactly( [ 'c', 'x', 'y' ] )
 
-    call s:FeedAndCheckAgain( "\<C-n>", funcref( 'Check2' ) )
+    call FeedAndCheckAgain( "\<C-n>", funcref( 'Check2' ) )
   endfunction
 
   function! Check2( id )
-    call s:WaitForCompletion()
-    call s:CheckCurrentLine( '  foo.c' )
-    call s:CheckCompletionItems( [ 'c', 'x', 'y' ] )
+    call WaitForCompletion()
+    call CheckCurrentLine( '  foo.c' )
+    call CheckCompletionItemsContainsExactly( [ 'c', 'x', 'y' ] )
 
-    call s:FeedAndCheckAgain( "\<C-n>", funcref( 'Check3' ) )
+    call FeedAndCheckAgain( "\<C-n>", funcref( 'Check3' ) )
   endfunction
 
   function! Check3( id )
-    call s:WaitForCompletion()
-    call s:CheckCurrentLine( '  foo.x' )
-    call s:CheckCompletionItems( [ 'c', 'x', 'y' ] )
+    call WaitForCompletion()
+    call CheckCurrentLine( '  foo.x' )
+    call CheckCompletionItemsContainsExactly( [ 'c', 'x', 'y' ] )
 
-    call s:FeedAndCheckAgain( "\<BS>a", funcref( 'Check4' ) )
+    call FeedAndCheckAgain( "\<BS>a", funcref( 'Check4' ) )
   endfunction
 
   function! Check4( id )
-    call s:CheckCurrentLine( '  foo.a' )
-    call s:CheckCompletionItems( [] )
-    call s:FeedAndCheckAgain( "\<C-n>", funcref( 'Check5' ) )
+    call CheckCurrentLine( '  foo.a' )
+    call CheckCompletionItemsContainsExactly( [] )
+    call FeedAndCheckAgain( "\<C-n>", funcref( 'Check5' ) )
   endfunction
 
   function! Check5( id )
     " The last ctrl-n moved to the next line
-    call s:CheckCurrentLine( '}' )
+    call CheckCurrentLine( '}' )
     call assert_equal( [ 0, 12, 2, 0 ], getpos( '.' ) )
-    call s:CheckCompletionItems( [] )
+    call CheckCompletionItemsContainsExactly( [] )
     call feedkeys( "\<Esc>" )
   endfunction
 
 
-  call s:FeedAndCheckMain( 'cl.', funcref( 'Check' ) )
+  call FeedAndCheckMain( 'cl.', funcref( 'Check' ) )
   " Checks run in insert mode, then exit insert mode.
   call assert_false( pumvisible(), 'pumvisible()' )
 
   call test_override( 'ALL', 0 )
   iunmap <C-n>
-  %bwipeout!
+endfunction
+
+function! Test_Completion_WorksWithoutMovingCursor()
+  call youcompleteme#test#setup#OpenFile(
+        \ 'test/testdata/cpp/auto_include_workaround.cc', {} )
+
+  function! Check( id )
+    call WaitForCompletion() " We don't care about completion
+                             " items, just that we didn't error
+                             " while opening the completion pum
+                             " without typing anything first.
+    call feedkeys( "\<Esc>" )
+  endfunction
+
+  call setpos( '.', [ 0, 3, 1 ] )
+  call FeedAndCheckMain( "i\<C-Space>", funcref( 'Check' ) )
+endfunction
+
+function! SetUp_Test_Manual_Trigger()
+  call youcompleteme#test#setup#PushGlobal( 'ycm_auto_trigger', 0 )
+endfunction
+
+function! Test_Manual_Trigger()
+  call youcompleteme#test#setup#OpenFile(
+        \ '/third_party/ycmd/ycmd/tests/clangd/testdata/basic.cpp', {} )
+
+  call setpos( '.', [ 0, 11, 6 ] )
+
+  imap <C-d> <plug>(YCMComplete)
+
+  " Required to trigger TextChangedI
+  " https://github.com/vim/vim/issues/4665#event-2480928194
+  call test_override( 'char_avail', 1 )
+
+  function! Check( id )
+    call WaitForCompletion()
+
+    call CheckCurrentLine( '  tfthne' )
+    call CheckCompletionItemsContainsExactly( [
+          \ 'test_function_that_has_no_errors' ], 'word' )
+
+    call FeedAndCheckAgain( "\<BS>", funcref( 'Check2' ) )
+  endfunction
+
+  function! Check2( id )
+    call WaitForCompletion()
+
+    call CheckCurrentLine( '  tfthn' )
+    call CheckCompletionItemsContainsExactly( [
+          \ 'test_function_that_has_no_errors' ], 'word' )
+
+    call feedkeys( "\<Esc>" )
+  endfunction
+
+  call FeedAndCheckMain( "Otfthne\<C-d>", funcref( 'Check' ) )
+  " Checks run in insert mode, then exit insert mode.
+  call assert_false( pumvisible(), 'pumvisible()' )
+
+  call test_override( 'ALL', 0 )
+  iunmap <C-d>
+endfunction
+
+function! TearDown_Test_Manual_Trigger()
+  call youcompleteme#test#setup#PopGlobal( 'ycm_auto_trigger' )
+endfunction
+
+function! SetUp_Test_Manual_Trigger_CompleteFunc()
+  call youcompleteme#test#setup#PushGlobal( 'ycm_auto_trigger', 0 )
+endfunction
+
+function! Test_Manual_Trigger_CompleteFunc()
+  call youcompleteme#test#setup#OpenFile(
+        \ '/third_party/ycmd/ycmd/tests/clangd/testdata/basic.cpp', {} )
+
+  call setpos( '.', [ 0, 11, 6 ] )
+  set completefunc=youcompleteme#CompleteFunc
+
+  " Required to trigger TextChangedI
+  " https://github.com/vim/vim/issues/4665#event-2480928194
+  call test_override( 'char_avail', 1 )
+
+  function! Check( id )
+    call WaitForCompletion()
+
+    call CheckCurrentLine( '  tfthne' )
+    call CheckCompletionItemsContainsExactly( [
+          \ 'test_function_that_has_no_errors' ], 'word' )
+
+    call FeedAndCheckAgain( "\<BS>", funcref( 'Check2' ) )
+  endfunction
+
+  function! Check2( id )
+    call WaitForCompletion()
+
+    call CheckCurrentLine( '  tfthn' )
+    call CheckCompletionItemsContainsExactly( [
+          \ 'test_function_that_has_no_errors' ], 'word' )
+
+    call feedkeys( "\<Esc>" )
+  endfunction
+
+  call FeedAndCheckMain( "Otfthne\<C-x>\<C-u>", funcref( 'Check' ) )
+  " Checks run in insert mode, then exit insert mode.
+  call assert_false( pumvisible(), 'pumvisible()' )
+
+  call test_override( 'ALL', 0 )
+  set completefunc=
+endfunction
+
+function! TearDown_Test_Manual_Trigger_CompleteFunc()
+  call youcompleteme#test#setup#PopGlobal( 'ycm_auto_trigger' )
 endfunction

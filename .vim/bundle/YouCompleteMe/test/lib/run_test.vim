@@ -146,15 +146,33 @@ func RunTheTest(test)
     let s:testid_filesafe = g:testpath . '_' . test_filesafe
 
     au VimLeavePre * call EarlyExit(s:test)
+    call ch_log( 'StartTest: ' . a:test )
+
+    messages clear
     exe 'call ' . a:test
+    " We require that tests either don't make errors or that they call messages
+    " clear
+    call assert_true(
+          \ empty( execute( 'messages' ) ),
+          \ 'Test '
+          \ .. a:test
+          \ .. ' produced unexpected messages output '
+          \ .. string( execute( 'messages' ) )
+          \ .. ' (hint: call :messages clear if this is expected, '
+          \ .. 'or use :silent)' )
+
+    call ch_log( 'EndTest: ' . a:test )
     au! VimLeavePre
   catch /^\cskipped/
+    let v:errors = []
+    call ch_log( 'Skipped: ' . a:test )
     call add(s:messages, '    Skipped')
     call add(s:skipped,
           \ 'SKIPPED ' . a:test
           \ . ': '
           \ . substitute(v:exception, '^\S*\s\+', '',  ''))
   catch
+    call ch_log( 'Catch: ' . a:test )
     call add(v:errors,
           \ 'Caught exception in ' . a:test
           \ . ': '
@@ -205,6 +223,9 @@ func RunTheTest(test)
 
   " Clear any autocommands
   au!
+
+  call test_override( 'ALL', 0 )
+  %bwipe!
 
   " Close any extra tab pages and windows and make the current one not modified.
   while tabpagenr('$') > 1
@@ -325,12 +346,6 @@ catch
         \ ' @ ' . v:throwpoint)
 endtry
 
-" Names of flaky tests.
-let s:flaky_tests = []
-
-" Pattern indicating a common flaky test failure.
-let s:flaky_errors_re = '__does_not_match__'
-
 " Locate Test_ functions and execute them.
 redir @q
 silent function /^Test_
@@ -349,7 +364,7 @@ def _InitCoverage():
   except ImportError:
     return None
 
-  cov = coverage.Coverage( data_file='.coverage.python' )
+  cov = coverage.Coverage( data_file='.coverage.python', data_suffix = True )
   cov.start()
   return cov
 
@@ -362,14 +377,37 @@ EOF
 if exists( '$COVERAGE' )
   profile start .vim_profile
   exe 'profile! file */youcompleteme.vim'
+  exe 'profile! file */youcompleteme/**.vim'
 endif
 
 " Execute the tests in alphabetical order.
 for s:test in sort(s:tests)
   " Silence, please!
   set belloff=all
-
   call RunTheTest(s:test)
+
+  " Repeat a flaky test.  Give up when:
+  " - $TEST_NO_RETRY is not empty
+  " - $TEST_NO_RETRY is not 0
+  " - it fails five times
+  if len(v:errors) > 0
+        \ && ( $TEST_NO_RETRY == '' || $TEST_NO_RETRY == '0' )
+    for retry in range( 10 )
+      call add( s:messages, 'Found errors in ' . s:test . '. Retrying.' )
+      call extend( s:messages, v:errors )
+
+      sleep 2
+
+      let v:errors = []
+      call RunTheTest(s:test)
+
+      if len(v:errors) == 0
+        " Test passed on rerun.
+        break
+      endif
+    endfor
+  endif
+
   call AfterTheTest()
 endfor
 

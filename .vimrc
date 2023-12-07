@@ -1,5 +1,9 @@
 filetype plugin indent on
 set ai
+set wrap
+set updatetime=100
+set signcolumn=yes
+set nocompatible
 set paste
 set incsearch
 set confirm
@@ -19,6 +23,7 @@ set softtabstop=2   " Sets the number of columns for a TAB
 
 set expandtab       " Expand TABs to spaces
 set encoding=utf-8
+set laststatus=2
 syntax on
 
 " Plugin Settings
@@ -41,6 +46,15 @@ let g:indent_guides_guide_size = 2
 autocmd BufWritePre * StripWhitespace
 autocmd BufWritePre * retab
 
+let g:gitgutter_enabled = 1
+let g:gitgutter_highlight_lines = 1
+let g:gitgutter_highlight_linenrs = 1
+
+highlight GitGutterAdd    guifg=#009900 ctermfg=2
+highlight GitGutterChange guifg=#bbbb00 ctermfg=3
+highlight GitGutterDelete guifg=#ff2222 ctermfg=1
+highlight link GitGutterDeleteLine DiffText
+
 "Puppet
 " 0 is to disable plugin
 let g:loaded_syntastic_puppet_puppet_checker = 0
@@ -53,19 +67,16 @@ let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
 let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 0
-let g:syntastic_quiet_messages = { "type": "style" }
-let g:syntastic_yaml_checkers = [ "yamllint" ]
 
 "let g:syntastic_
 
 "http://stackoverflow.com/questions/20663169/vim-really-slow-with-long-yaml
-"au BufNewFile,BufRead *.yaml,*.yml so ~/.vim/yaml.vim
+map BufNewFile,BufRead *.yaml,*.yml so ~/.vim/yaml.vim
 
 let g:SuperTabDefaultCompletionType = "context"
 
-"let g:auto_save = 1
-"let g:auto_save_events = ["InsertLeave", "TextChanged"]
-
+let g:auto_save = 1
+let g:auto_save_events = ["InsertLeave", "TextChanged"]
 
 execute pathogen#helptags()
 execute pathogen#infect()

@@ -5,39 +5,17 @@ YouCompleteMe: a code-completion engine for Vim
 [![Build status](https://dev.azure.com/YouCompleteMe/YCM/_apis/build/status/ycm-core.YouCompleteMe?branchName=master)](https://dev.azure.com/YouCompleteMe/YCM/_build?definitionId=3&branchName=master)
 [![Coverage status](https://img.shields.io/codecov/c/github/ycm-core/YouCompleteMe/master.svg)](https://codecov.io/gh/ycm-core/YouCompleteMe)
 
-Warning: Support for Python 2 has been dropped
-----
-
-In early 2020, YCM dropped support for Python 2. But we will maintain
-critical fixes on a branch named [legacy-py2][] for a period of 1 year.
-
-How?
-
-In order to use the legacy Python 2 support, see 
-[this post](https://github.com/ycm-core/YouCompleteMe/issues/3595#issuecomment-584230366)
-
-Why?
-
-Over the past decade, YouCompleteMe has had an at times fractious, 
-but ultimately very successful relationship with Python 2. However, more
-recently it has been carrying on a simultaneous relationship with Python 3.
-Indeed all of YCM and ycmd code is Python 3 code, with a lot of gubbins
-to make it work also on Python 2. This makes the code more complex,
-requires double testing of everything, and restricts the developers from using
-certain new language features, ultimately restricting the features we can
-deliver to users.
-
-On 1st January 2020, Python 2 will be officially end of life. And therefore, so
-will its relationship with YouCompleteMe and ycmd.
-
-
 Help, Advice, Support
 ---------------------
 
 Looking for help, advice or support? Having problems getting YCM to work?
 
 First carefully read the [installation instructions](#installation) for your OS.
-We recommend you use the supplied `install.py`.
+We recommend you use the supplied `install.py` - the "full" installation guide
+is for rare, advanced use cases and most users should use `install.py`.
+
+If the server isn't starting and you're getting a "YouCompleteMe unavailable"
+error, check the [Troubleshooting][wiki-troubleshooting] guide.
 
 Next check the [User Guide](#user-guide) section on the semantic completer that
 you are using. For C/C++/Objective-C/Objective-C++/CUDA, you  _must_ read [this
@@ -49,18 +27,23 @@ If, after reading the installation and user guides, and checking the FAQ, you're
 still having trouble, check the [contacts](#contact) section below for how to
 get in touch.
 
-Please do **NOT** go to #vim on freenode for support. Please contact the
+Please do **NOT** go to #vim on Freenode for support. Please contact the
 YouCompleteMe maintainers directly using the [contact details](#contact) below.
+
+# Vundle
+
+Please note that the below instructions suggest using Vundle. Currently there
+are problems with Vundle, so here are some [alternative instructions](https://github.com/ycm-core/YouCompleteMe/issues/4134#issuecomment-1446235584) using Vim packages.
 
 Contents
 --------
 
 - [Intro](#intro)
 - [Installation](#installation)
+    - [Requirements](#requirements)
     - [macOS](#macos)
     - [Linux 64-bit](#linux-64-bit)
     - [Windows](#windows)
-    - [FreeBSD/OpenBSD](#freebsdopenbsd)
     - [Full Installation Guide](#full-installation-guide)
 - [Quick Feature Summary](#quick-feature-summary)
 - [User Guide](#user-guide)
@@ -68,8 +51,12 @@ Contents
     - [Client-Server Architecture](#client-server-architecture)
     - [Completion String Ranking](#completion-string-ranking)
     - [General Semantic Completion](#general-semantic-completion)
+    - [Signature Help](#signature-help)
+    - [Semantic Highlighting](#semantic-highlighting)
+    - [Inlay Hints](#inlay-hints)
     - [C-family Semantic Completion](#c-family-semantic-completion)
     - [Java Semantic Completion](#java-semantic-completion)
+    - [C# Semantic Completion](#c-semantic-completion)
     - [Python Semantic Completion](#python-semantic-completion)
     - [Rust Semantic Completion](#rust-semantic-completion)
     - [Go Semantic Completion](#go-semantic-completion)
@@ -79,6 +66,7 @@ Contents
     - [Writing New Semantic Completers](#writing-new-semantic-completers)
     - [Diagnostic Display](#diagnostic-display)
         - [Diagnostic Highlighting Groups](#diagnostic-highlighting-groups)
+    - [Symbol Search](#symbol-search)
 - [Commands](#commands)
     - [YcmCompleter subcommands](#ycmcompleter-subcommands)
         - [GoTo Commands](#goto-commands)
@@ -92,13 +80,18 @@ Contents
 - [Contributor Code of Conduct](#contributor-code-of-conduct)
 - [Contact](#contact)
 - [License](#license)
+- [Sponsorship](#sponsorship)
 
 
 Intro
 -----
 
-YouCompleteMe is a fast, as-you-type, fuzzy-search code completion engine for
-[Vim][]. It has several completion engines:
+YouCompleteMe is a fast, as-you-type, fuzzy-search code completion,
+comprehension and refactoring engine for [Vim][].
+
+It has several completion engines built in and supports any protocol-compliant
+Language Server, so can work with practically any language. YouCompleteMe
+contains:
 
 - an identifier-based engine that works with every programming language,
 - a powerful [clangd][]-based engine that provides native semantic code
@@ -108,7 +101,7 @@ YouCompleteMe is a fast, as-you-type, fuzzy-search code completion engine for
 - an [OmniSharp-Roslyn][]-based completion engine for C#,
 - a [Gopls][]-based completion engine for Go,
 - a [TSServer][]-based completion engine for JavaScript and TypeScript,
-- a [rls][]-based completion engine for Rust,
+- a [rust-analyzer][]-based completion engine for Rust,
 - a [jdt.ls][]-based completion engine for Java.
 - a [generic Language Server Protocol implementation for any language](#plugging-an-arbitrary-lsp-server)
 - and an omnifunc-based completer that uses data from Vim's omnicomplete system
@@ -157,17 +150,9 @@ and detects warnings or errors, they will be presented in various ways. You
 don't need to save your file or press any keyboard shortcut to trigger this, it
 "just happens" in the background.
 
-In essence, YCM obsoletes the following Vim plugins because it has all of their
-features plus extra:
-
-- clang_complete
-- AutoComplPop
-- Supertab
-- neocomplcache
-
 **And that's not all...**
 
-YCM might be the only vim completion engine with the correct Unicode support.
+YCM might be the only Vim completion engine with the correct Unicode support.
 Though we do assume UTF-8 everywhere.
 
 ![YouCompleteMe GIF unicode demo](https://user-images.githubusercontent.com/10026824/34471853-af9cf32a-ef53-11e7-8229-de534058ddc4.gif)
@@ -178,7 +163,7 @@ number of languages, including:
 - displaying signature help (argument hints) when entering the arguments to a
   function call (Vim only)
 - [finding declarations, definitions, usages](#goto-commands), etc.
-  of identifiers,
+  of identifiers, and an [interactive symbol finder](#symbol-search)
 - [displaying type information](#the-gettype-subcommand) for classes,
   variables, functions etc.,
 - displaying documentation for methods, members, etc. in the [preview
@@ -199,8 +184,8 @@ Below we can see YCM being able to do a few things:
 - Retrieve references across files
 - Go to declaration/definition
 - Expand `auto` in C++
-- Fix some common errors with `FixIt`
-- Not shown in the gif is `GoToImplementation` and `GoToType`
+- Fix some common errors, and provide refactorings, with `FixIt`
+- Not shown in the GIF is `GoToImplementation` and `GoToType`
   for servers that support it.
 
 ![YouCompleteMe GIF subcommands demo](https://i.imgur.com/nmUUbdl.gif)
@@ -221,30 +206,137 @@ and a completer that integrates with [UltiSnips][].
 Installation
 ------------
 
+### Requirements
+
+| Runtime | Min Version | Recommended Version (full support) | Python |
+|---------|-------------|------------------------------------|--------|
+| Vim     | 8.1.2269    | 9.0.214                            | 3.8    |
+| Neovim  | 0.5         | Vim 9.0.214                        | 3.8    |
+
+#### Supported Vim Versions
+
+Our policy is to support the Vim version that's in the latest LTS of Ubuntu.
+That's currently Ubuntu 20.04 which contains `vim-nox` at `v8.1.2269`.
+
+Vim must have a [working Python 3 runtime](#supported-python-runtime).
+
+For Neovim users, our policy is to require the latest released version.
+Currently, Neovim 0.5.0 is required.  Please note that some features are not
+available in Neovim, and Neovim is not officially supported.
+
+#### Supported Python runtime
+
+YCM has two components: A server and a client. Both the server and client
+require Python 3.8 or later 3.x release. 
+
+For the Vim client, Vim must be, compiled with `--enable-shared` (or
+`--enable-framework` on macOS). You can check if this is working with `:py3
+import sys; print( sys.version)`. It should say something like `3.8.2 (...)`.
+
+For Neovim, you must have a python 3.8 runtime and the Neovim python
+extensions. See Neovim's `:help provider-python` for how to set that up.
+
+For the server, you must run the `install.py` script with a python 3.8 (or
+later) runtime. Anaconda etc. are not supported. YCM will remember the runtime
+you used to run `install.py` and will use that when launching the server, so if
+you usually use anaconda, then make sure to use the full path to a real cpython3,
+e.g. `/usr/bin/python3 install.py --all` etc.
+
+Our policy is to support the python3 version that's availble in the latest
+Ubuntu LTS (similar to our Vim version policy). We don't increase the python
+runtime version without a reason, though. Typically, we do this when the current
+python version wer're using goes out of support. At that time we will typically
+pick a version that will be supported for a number of years.
+
+#### Supported Compilers
+
+In order to provide the best possible performance and stability, ycmd has
+updated its code to C++17. This requires a version bump of the minimum
+supported compilers. The new requirements are:
+
+| Compiler | Current Min    |
+|----------|----------------|
+| GCC      | 8              |
+| Clang    | 7              |
+| MSVC     | 15.7 (VS 2017) |
+
+YCM requires CMake 3.13 or greater. If your CMake is too old, you may be able to
+simply `pip install --user cmake` to get a really new version.
+
+#### Individual completer requirements
+
+When enabling language support for a particular language, there may be runtime
+requirements, such as needing a very recent Java Development Kit for Java
+support. In general, YCM is not in control of the required versions for the
+downstream compilers, though we do our best to signal where we know them.
+
 ### macOS
 
 #### Quick start, installing all completers
 
-- Install cmake, macvim and python; Note that the *system* vim is not supported.
+- Install YCM plugin via [Vundle][]
+- Install CMake, MacVim and Python 3; Note that the pre-installed *macOS system*
+  Vim is not supported (due to it having broken Python integration).
 
-&nbsp;
+```
+$ brew install cmake python go nodejs
+```
 
-    brew install cmake macvim python
+- Install mono from [Mono Project](mono-install-macos) (NOTE: on Intel Macs you
+  can also `brew install mono`. On arm Macs, you may require Rosetta)
 
-- Install mono, go, node and npm
+- For java support you must install a JDK, one way to do this is with Homebrew:
 
-&nbsp;
+```
+$ brew install java
+$ sudo ln -sfn $(brew --prefix java)/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk.jdk
+```
 
-    brew install mono go nodejs
+- Pre-installed macOS *system* Vim does not support Python 3. So you need to
+  install either a Vim that supports Python 3 OR [MacVim][] with
+  [Homebrew][brew]:
 
-- Compile YCM
+  - Option 1: Installing a Vim that supports Python 3
+  
+  ```
+  brew install vim
+  ```
 
-&nbsp;
+  - Option 2: Installing [MacVim][]
+  
+  ```
+  brew install macvim
+  ```
 
+- Compile YCM.
+
+  - For Intel and arm64 Macs, the bundled libclang/clangd work:
+
+    ```
     cd ~/.vim/bundle/YouCompleteMe
     python3 install.py --all
+    ```
 
-- For plugging an arbitrary LSP server, check [the relevant section](#plugging-an-arbitrary-lsp-server)
+  - If you have troubles with finding system frameworks or C++ standard library,
+    try using the homebrew llvm:
+
+    ```
+    brew install llvm
+    cd ~/.vim/bundle/YouCompleteMe
+    python3 install.py --system-libclang --all
+    ```
+
+    And edit your vimrc to add the following line to use the Homebrew llvm's
+    clangd:
+
+    ```viml
+    " Use homebrew's clangd
+    let g:ycm_clangd_binary_path = trim(system('brew --prefix llvm')).'/bin/clangd'
+    ```
+
+
+- For using an arbitrary LSP server, check [the relevant
+  section](#plugging-an-arbitrary-lsp-server)
 
 #### Explanation for the quick start
 
@@ -253,11 +345,17 @@ YouCompleteMe, however they may not work for everyone. If the following
 instructions don't work for you, check out the [full installation
 guide](#full-installation-guide).
 
-[MacVim][] is required. YCM won't work with the pre-installed Vim from Apple as
-its Python support is broken. If you don't already use [MacVim][], install it
-with [Homebrew][brew]. Install CMake as well:
+A supported Vim version with Python 3 is required. [MacVim][] is a good option,
+even if you only use the terminal. YCM won't work with the pre-installed Vim
+from Apple as its Python support is broken. If you don't already use a Vim
+that supports Python 3 or [MacVim][], install it with [Homebrew][brew]. Install
+CMake as well:
 
-    brew install cmake macvim
+    brew install vim cmake     
+    
+   OR
+
+    brew install macvim cmake
 
 Install YouCompleteMe with [Vundle][].
 
@@ -274,34 +372,39 @@ automatically when you run `clang` for the first time, or manually by running
 Compiling YCM **with** semantic support for C-family languages through
 **clangd**:
 
-    cd ~/.vim/bundle/YouCompleteMe
-    ./install.py --clangd-completer
+```
+cd ~/.vim/bundle/YouCompleteMe
+./install.py --clangd-completer
+```
 
 Compiling YCM **without** semantic support for C-family languages:
 
-    cd ~/.vim/bundle/YouCompleteMe
-    ./install.py
+```
+cd ~/.vim/bundle/YouCompleteMe
+./install.py
+```
+
 
 The following additional language support options are available:
 
-- C# support: install Mono with [Homebrew][brew] or by downloading the [Mono
-  macOS package][mono-install-macos] and add `--cs-completer` when calling
-  `install.py`.
+- C# support: install by downloading the [Mono macOS package][mono-install-macos]
+  and add `--cs-completer` when calling `install.py`.
 - Go support: install [Go][go-install] and add `--go-completer` when calling
   `install.py`.
-- JavaScript and TypeScript support: install [Node.js and npm][npm-install] and
+- JavaScript and TypeScript support: install [Node.js 18+ and npm][npm-install] and
   add `--ts-completer` when calling `install.py`.
 - Rust support: add `--rust-completer` when calling `install.py`.
-- Java support: install [JDK8 (version 8 required)][jdk-install] and add
+- Java support: install [JDK 17][jdk-install] and add
   `--java-completer` when calling `install.py`.
 
-To simply compile with everything enabled, there's a `--all` flag. You need to
-specify it manually by adding `--clangd-completer`. So, to install with all
-language features, ensure `xbuild`, `go`, `node` and `npm` tools
-are installed and in your `PATH`, then simply run:
+To simply compile with everything enabled, there's a `--all` flag. So, to
+install with all language features, ensure `xbuild`, `go`, `node` and `npm`
+tools are installed and in your `PATH`, then simply run:
 
-    cd ~/.vim/bundle/YouCompleteMe
-    ./install.py --all
+```
+cd ~/.vim/bundle/YouCompleteMe
+./install.py --all
+```
 
 That's it. You're done. Refer to the _User Guide_ section on how to use YCM.
 Don't forget that if you want the C-family semantic completion engine to work,
@@ -314,21 +417,32 @@ that are conservatively turned off by default that you may want to turn on.
 
 ### Linux 64-bit
 
+The following assume you're using Ubuntu 20.04.
+
 #### Quick start, installing all completers
 
-- Install cmake, vim and python
+- Install YCM plugin via [Vundle][]
+- Install CMake, Vim and Python
 
-&nbsp;
+```
+apt install build-essential cmake vim-nox python3-dev
+```
 
-    apt install build-essential cmake vim python3-dev
+- Install mono-complete, go, node, java and npm
 
-- Install mono-complete, go, node and npm
+```
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_current.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
+apt install mono-complete golang nodejs openjdk-17-jdk openjdk-17-jre npm
+```
+
 - Compile YCM
 
-&nbsp;
-
-    cd ~/.vim/bundle/YouCompleteMe
-    python3 install.py --all
+```
+cd ~/.vim/bundle/YouCompleteMe
+python3 install.py --all
+```
 
 - For plugging an arbitrary LSP server, check [the relevant section](#plugging-an-arbitrary-lsp-server)
 
@@ -339,13 +453,13 @@ YouCompleteMe, however they may not work for everyone. If the following
 instructions don't work for you, check out the [full installation
 guide](#full-installation-guide).
 
-Make sure you have Vim 7.4.1578 with Python 3 support. The Vim
-package on Fedora 27 and later and the pre-installed Vim on Ubuntu 16.04 and
-later are recent enough. You can see the version of Vim installed by running
-`vim --version`. If the version is too old, you may need to [compile Vim from
-source][vim-build] (don't worry, it's easy).
+Make sure you have a supported version of Vim with Python 3 support, and a
+supported compiler. The latest LTS of Ubuntu is the minimum platform for simple
+installation. For earlier releases or other distributions, you may have to do
+some work to acquire the dependencies.
 
-**NOTE**: For all features, such as signature help, use Vim 8.1.1875 or later.
+If your Vim version is too old, you may need to [compile Vim from
+source][vim-build] (don't worry, it's easy).
 
 Install YouCompleteMe with [Vundle][].
 
@@ -355,34 +469,32 @@ will notify you to recompile it. You should then rerun the install process.
 
 Install development tools, CMake, and Python headers:
 
-- Fedora 27 and later:
+- Fedora-like distributions:
 
-&nbsp;
+```
+sudo dnf install cmake gcc-c++ make python3-devel
+```
 
-      sudo dnf install cmake gcc-c++ make python3-devel
+- Ubuntu LTS:
 
-- Ubuntu 14.04:
-
-&nbsp;
-
-      sudo apt install build-essential cmake3 python3-dev
-
-- Ubuntu 16.04 and later:
-
-&nbsp;
-
-      sudo apt install build-essential cmake python3-dev
+```
+sudo apt install build-essential cmake3 python3-dev
+```
 
 Compiling YCM **with** semantic support for C-family languages through
 **clangd**:
 
-    cd ~/.vim/bundle/YouCompleteMe
-    python3 install.py --clangd-completer
+```
+cd ~/.vim/bundle/YouCompleteMe
+python3 install.py --clangd-completer
+```
 
 Compiling YCM **without** semantic support for C-family languages:
 
-    cd ~/.vim/bundle/YouCompleteMe
-    python3 install.py
+```
+cd ~/.vim/bundle/YouCompleteMe
+python3 install.py
+```
 
 The following additional language support options are available:
 
@@ -390,19 +502,20 @@ The following additional language support options are available:
   when calling `install.py`.
 - Go support: install [Go][go-install] and add `--go-completer` when calling
   `install.py`.
-- JavaScript and TypeScript support: install [Node.js and npm][npm-install] and
+- JavaScript and TypeScript support: install [Node.js 18+ and npm][npm-install] and
   add `--ts-completer` when calling `install.py`.
 - Rust support: add `--rust-completer` when calling `install.py`.
-- Java support: install [JDK8 (version 8 required)][jdk-install] and add
+- Java support: install [JDK 17][jdk-install] and add
   `--java-completer` when calling `install.py`.
 
-To simply compile with everything enabled, there's a `--all` flag. You need to
-specify it manually by adding `--clangd-completer`. So, to install with all
-language features, ensure `xbuild`, `go`, `node`, `npm` and tools
-are installed and in your `PATH`, then simply run:
+To simply compile with everything enabled, there's a `--all` flag. So, to
+install with all language features, ensure `xbuild`, `go`, `node` and `npm`
+tools are installed and in your `PATH`, then simply run:
 
-    cd ~/.vim/bundle/YouCompleteMe
-    python3 install.py --all
+```
+cd ~/.vim/bundle/YouCompleteMe
+python3 install.py --all
+```
 
 That's it. You're done. Refer to the _User Guide_ section on how to use YCM.
 Don't forget that if you want the C-family semantic completion engine to work,
@@ -417,15 +530,16 @@ that are conservatively turned off by default that you may want to turn on.
 
 #### Quick start, installing all completers
 
-- Install [Visual Studio Build Tools 2017][visual-studio-download]
-- Install cmake, vim and python
+- Install YCM plugin via [Vundle][]
+- Install [Visual Studio Build Tools 2019][visual-studio-download]
+- Install CMake, Vim and Python
 - Install go, node and npm
 - Compile YCM
 
-&nbsp;
-
-    cd YouCompleteMe
-    python3 install.py --all
+```
+cd YouCompleteMe
+python3 install.py --all
+```
 
 - Add `set encoding=utf-8` to your [vimrc][]
 - For plugging an arbitrary LSP server, check [the relevant section](#plugging-an-arbitrary-lsp-server)
@@ -440,7 +554,7 @@ guide](#full-installation-guide).
 **Important:** we assume that you are using the `cmd.exe` command prompt and
 that you know how to add an executable to the PATH environment variable.
 
-Make sure you have at least Vim 7.4.1578 with Python 3 support. You
+Make sure you have a supported Vim version with Python 3 support. You
 can check the version and which Python is supported by typing `:version` inside
 Vim. Look at the features included: `+python3/dyn` for Python 3.
 Take note of the Vim architecture, i.e. 32 or
@@ -448,15 +562,15 @@ Take note of the Vim architecture, i.e. 32 or
 using a 64-bit client. [Daily updated installers of 32-bit and 64-bit Vim with
 Python 3 support][vim-win-download] are available.
 
-**NOTE**: For all features, such as signature help, use Vim 8.1.1875 or later.
+Add the following line to your [vimrc][] if not already present.:
 
-Add the line:
+```viml
+set encoding=utf-8
+```
 
-    set encoding=utf-8
-
-to your [vimrc][] if not already present. This option is required by YCM. Note
-that it does not prevent you from editing a file in another encoding than UTF-8.
-You can do that by specifying [the `++enc` argument][++enc] to the `:e` command.
+This option is required by YCM. Note that it does not prevent you from editing a
+file in another encoding than UTF-8.  You can do that by specifying [the `++enc`
+argument][++enc] to the `:e` command.
 
 Install YouCompleteMe with [Vundle][].
 
@@ -473,24 +587,28 @@ Download and install the following software:
   Additionally, the version of Python you install must match up exactly with
   the version of Python that Vim is looking for. Type `:version` and look at the
   bottom of the page at the list of compiler flags. Look for flags that look
-  similar to `-DDYNAMIC_PYTHON3_DLL=\"python35.dll\"`. This indicates
-  that Vim is looking for Python 3.5. You'll need one or the other installed,
+  similar to `-DDYNAMIC_PYTHON3_DLL=\"python36.dll\"`. This indicates
+  that Vim is looking for Python 3.6. You'll need one or the other installed,
   matching the version number exactly.
 - [CMake][cmake-download]. Add CMake executable to the PATH environment
   variable.
-- [Visual Studio Build Tools 2017][visual-studio-download]. During setup,
-  select _Visual C++ build tools_ in _Workloads_.
+- [Build Tools for Visual Studio 2019][visual-studio-download]. During setup,
+  select _C++ build tools_ in _Workloads_.
 
 Compiling YCM **with** semantic support for C-family languages through
 **clangd**:
 
-    cd %USERPROFILE%/vimfiles/bundle/YouCompleteMe
-    python install.py --clangd-completer
+```
+cd %USERPROFILE%/vimfiles/bundle/YouCompleteMe
+python install.py --clangd-completer
+```
 
 Compiling YCM **without** semantic support for C-family languages:
 
-    cd %USERPROFILE%/vimfiles/bundle/YouCompleteMe
-    python install.py
+```
+cd %USERPROFILE%/vimfiles/bundle/YouCompleteMe
+python install.py
+```
 
 The following additional language support options are available:
 
@@ -498,115 +616,24 @@ The following additional language support options are available:
   Be sure that [the build utility `msbuild` is in your PATH][add-msbuild-to-path].
 - Go support: install [Go][go-install] and add `--go-completer` when calling
   `install.py`.
-- JavaScript and TypeScript support: install [Node.js and npm][npm-install] and
+- JavaScript and TypeScript support: install [Node.js 18+ and npm][npm-install] and
   add `--ts-completer` when calling `install.py`.
 - Rust support: add `--rust-completer` when calling `install.py`.
-- Java support: install [JDK8 (version 8 required)][jdk-install] and add
+- Java support: install [JDK 17][jdk-install] and add
   `--java-completer` when calling `install.py`.
 
-To simply compile with everything enabled, there's a `--all` flag. You need to
-specify it manually by adding `--clangd-completer`. So, to install with all
-language features, ensure `msbuild`, `go`, `node` and `npm` tools
-are installed and in your `PATH`, then simply run:
+To simply compile with everything enabled, there's a `--all` flag. So, to
+install with all language features, ensure `msbuild`, `go`, `node` and `npm`
+tools are installed and in your `PATH`, then simply run:
 
-    cd %USERPROFILE%/vimfiles/bundle/YouCompleteMe
-    python install.py --all
+```
+cd %USERPROFILE%/vimfiles/bundle/YouCompleteMe
+python install.py --all
+```
 
 You can specify the Microsoft Visual C++ (MSVC) version using the `--msvc`
-option. YCM officially supports MSVC 14 (Visual Studio 2015), 15 (2017) and
-MSVC 16 (Visual Studio 2019).
-
-That's it. You're done. Refer to the _User Guide_ section on how to use YCM.
-Don't forget that if you want the C-family semantic completion engine to work,
-you will need to provide the compilation flags for your project to YCM. It's all
-in the User Guide.
-
-YCM comes with sane defaults for its options, but you still may want to take a
-look at what's available for configuration. There are a few interesting options
-that are conservatively turned off by default that you may want to turn on.
-
-### FreeBSD/OpenBSD
-
-#### Quick start, installing all completers
-
-- Install cmake
-
-&nbsp;
-
-    pkg install cmake
-
-- Install xbuild, go, node and npm
-- Compile YCM
-
-&nbsp;
-
-    cd ~/.vim/bundle/YouCompleteMe
-    python3 install.py --all
-
-- For plugging an arbitrary LSP server, check [the relevant section](#plugging-an-arbitrary-lsp-server)
-
-#### Explanation for the quick start
-
-These instructions (using `install.py`) are the quickest way to install
-YouCompleteMe, however they may not work for everyone. If the following
-instructions don't work for you, check out the [full installation
-guide](#full-installation-guide).
-
-**NOTE:** OpenBSD / FreeBSD are not officially supported platforms by YCM.
-
-Make sure you have Vim 7.4.1578 with Python 3 support.
-
-**NOTE**: For all features, such as signature help, use Vim 8.1.1875 or later.
-
-OpenBSD 5.5 and later have a Vim that's recent enough. You can see the version of
-Vim installed by running `vim --version`.
-
-For FreeBSD 11.x, the requirement is cmake:
-
-    pkg install cmake
-
-Install YouCompleteMe with [Vundle][].
-
-**Remember:** YCM is a plugin with a compiled component. If you **update** YCM
-using Vundle and the `ycm_core` library APIs have changed (happens
-rarely), YCM will notify you to recompile it. You should then rerun the install
-process.
-
-Compiling YCM **with** semantic support for C-family languages through
-**clangd**:
-
-    cd ~/.vim/bundle/YouCompleteMe
-    ./install.py --clangd-completer
-
-Compiling YCM **without** semantic support for C-family languages:
-
-    cd ~/.vim/bundle/YouCompleteMe
-    ./install.py
-
-If the `python` executable is not present, or the default `python` is not the
-one that should be compiled against, specify the python interpreter explicitly:
-
-    python3 install.py --clangd-completer
-
-The following additional language support options are available:
-
-- C# support: install Mono and add `--cs-completer` when calling
-  `./install.py`.
-- Go support: install [Go][go-install] and add `--go-completer` when calling
-  `./install.py`.
-- JavaScript and TypeScript support: install [Node.js and npm][npm-install] and
-  add `--ts-completer` when calling `install.py`.
-- Rust support: add `--rust-completer` when calling `./install.py`.
-- Java support: install [JDK8 (version 8 required)][jdk-install] and add
-  `--java-completer` when calling `./install.py`.
-
-To simply compile with everything enabled, there's a `--all` flag. You need to
-specify it manually by adding `--clangd-completer`. So, to install with all
-language features, ensure `xbuild`, `go`, `node`, `npm` and tools
-are installed and in your `PATH`, then simply run:
-
-    cd ~/.vim/bundle/YouCompleteMe
-    ./install.py --all
+option. YCM officially supports MSVC 15 (2017), MSVC 16 (Visual Studio 2019) 
+and MSVC 17 (Visual Studio 17 2022).
 
 That's it. You're done. Refer to the _User Guide_ section on how to use YCM.
 Don't forget that if you want the C-family semantic completion engine to work,
@@ -629,7 +656,7 @@ Quick Feature Summary
 * Super-fast identifier completer including tags files and syntax elements
 * Intelligent suggestion ranking and filtering
 * File and path suggestions
-* Suggestions from Vim's OmniFunc
+* Suggestions from Vim's omnifunc
 * UltiSnips snippet suggestions
 
 ### C-family languages (C, C++, Objective C, Objective C++, CUDA)
@@ -638,12 +665,18 @@ Quick Feature Summary
 * Signature help
 * Real-time diagnostic display
 * Go to include/declaration/definition (`GoTo`, etc.)
+* Go to alternate file (e.g. associated header `GoToAlternateFile`)
+* Find Symbol (`GoToSymbol`), with interactive search
+* Document outline (`GoToDocumentOutline`), with interactive search
 * View documentation comments for identifiers (`GetDoc`)
 * Type information for identifiers (`GetType`)
 * Automatically fix certain errors (`FixIt`)
+* Perform refactoring (`FixIt`)
 * Reference finding (`GoToReferences`)
 * Renaming symbols (`RefactorRename <new name>`)
 * Code formatting (`Format`)
+* Semantic highlighting
+* Inlay hints
 
 ### C♯
 
@@ -652,9 +685,11 @@ Quick Feature Summary
 * Real-time diagnostic display
 * Go to declaration/definition (`GoTo`, etc.)
 * Go to implementation (`GoToImplementation`)
+* Find Symbol (`GoToSymbol`), with interactive search
 * View documentation comments for identifiers (`GetDoc`)
 * Type information for identifiers (`GetType`)
 * Automatically fix certain errors (`FixIt`)
+* Perform refactoring (`FixIt`)
 * Management of OmniSharp-Roslyn server instance
 * Renaming symbols (`RefactorRename <new name>`)
 * Code formatting (`Format`)
@@ -664,9 +699,11 @@ Quick Feature Summary
 * Semantic auto-completion
 * Signature help
 * Go to definition (`GoTo`)
+* Find Symbol (`GoToSymbol`), with interactive search
 * Reference finding (`GoToReferences`)
 * View documentation comments for identifiers (`GetDoc`)
 * Type information for identifiers (`GetType`)
+* Renaming symbols (`RefactorRename <new name>`)
 
 ### Go
 
@@ -676,7 +713,9 @@ Quick Feature Summary
 * Go to declaration/definition (`GoTo`, etc.)
 * Go to type definition (`GoToType`)
 * Go to implementation (`GoToImplementation`)
+* Document outline (`GoToDocumentOutline`), with interactive search
 * Automatically fix certain errors (`FixIt`)
+* Perform refactoring (`FixIt`)
 * View documentation comments for identifiers (`GetDoc`)
 * Type information for identifiers (`GetType`)
 * Code formatting (`Format`)
@@ -691,14 +730,17 @@ Quick Feature Summary
   identical)
 * Go to type definition (`GoToType`)
 * Go to implementation (`GoToImplementation`)
+* Find Symbol (`GoToSymbol`), with interactive search
 * Reference finding (`GoToReferences`)
 * View documentation comments for identifiers (`GetDoc`)
 * Type information for identifiers (`GetType`)
-* Automatically fix certain errors (`FixIt`)
+* Automatically fix certain errors and perform refactoring (`FixIt`)
+* Perform refactoring (`FixIt`)
 * Renaming symbols (`RefactorRename <new name>`)
 * Code formatting (`Format`)
 * Organize imports (`OrganizeImports`)
 * Management of `TSServer` server instance
+* Inlay hints
 
 ### Rust
 
@@ -707,13 +749,16 @@ Quick Feature Summary
 * Go to declaration/definition (`GoTo`, etc.)
 * Go to implementation (`GoToImplementation`)
 * Reference finding (`GoToReferences`)
+* Document outline (`GoToDocumentOutline`), with interactive search
 * View documentation comments for identifiers (`GetDoc`)
 * Automatically fix certain errors (`FixIt`)
+* Perform refactoring (`FixIt`)
 * Type information for identifiers (`GetType`)
 * Renaming symbols (`RefactorRename <new name>`)
 * Code formatting (`Format`)
-* Execute custom server command (`ExecuteCommand <args>`)
-* Management of `rls` server instance
+* Management of `rust-analyzer` server instance
+* Semantic highlighting
+* Inlay hints
 
 ### Java
 
@@ -724,7 +769,9 @@ Quick Feature Summary
   identical)
 * Go to type definition (`GoToType`)
 * Go to implementation (`GoToImplementation`)
+* Find Symbol (`GoToSymbol`), with interactive search
 * Reference finding (`GoToReferences`)
+* Document outline (`GoToDocumentOutline`), with interactive search
 * View documentation comments for identifiers (`GetDoc`)
 * Type information for identifiers (`GetType`)
 * Automatically fix certain errors including code generation (`FixIt`)
@@ -734,6 +781,7 @@ Quick Feature Summary
 * Detection of java projects
 * Execute custom server command (`ExecuteCommand <args>`)
 * Management of `jdt.ls` server instance
+* Semantic highlighting
 
 User Guide
 ----------
@@ -792,7 +840,7 @@ letter with or without marks:
 
 Use the TAB key to accept a completion and continue pressing TAB to cycle
 through the completions. Use Shift-TAB to cycle backwards. Note that if you're
-using console Vim (that is, not Gvim or MacVim) then it's likely that the
+using console Vim (that is, not gvim or MacVim) then it's likely that the
 Shift-TAB binding will not work because the console will not pass it to Vim.
 You can remap the keys; see the [Options](#options) section below.
 
@@ -837,18 +885,165 @@ string.
 
 ### Signature Help
 
-Signature help is an **experimental** feature for which we value your feedback.
 Valid signatures are displayed in a second popup menu and the current signature
-is highlighed along with the current arguemnt.
+is highlighted along with the current argument.
 
 Signature help is triggered in insert mode automatically when
 `g:ycm_auto_trigger` is enabled and is not supported when it is not enabled.
 
 The signatures popup is hidden when there are no matching signatures or when you
-leave insert mode. There is no key binding to clear the popup.
+leave insert mode. If you want to manually control when it is visible, you can
+map something to `<plug>YCMToggleSignatureHelp` (see below).
 
 For more details on this feature and a few demos, check out the
 [PR that proposed it][signature-help-pr].
+
+#### Dismiss signature help
+
+The signature help popup sometimes gets in the way. You can toggle its
+visibility with a mapping. YCM provides the "Plug" mapping
+`<Plug>(YCMToggleSignatureHelp)` for this.
+
+For example, to hide/show the signature help popup by pressing Ctrl+l in insert
+mode: `imap <silent> <C-l> <Plug>(YCMToggleSignatureHelp)`.
+
+_NOTE_: No default mapping is provided because insert mappings are very
+difficult to create without breaking or overriding some existing functionality.
+Ctrl-l is not a suggestion, just an example.
+
+### Semantic highlighting
+
+**NOTE**: This feature is highly experimental and offered in the hope that it is
+useful. It shall not be considered stable; if you find issues with it, feel free
+to report them however.
+
+Semantic highlighting is the process where the buffer text is coloured according
+to the underlying semantic type of the word, rather than classic syntax
+highlighting based on regular expressions. This can be powerful additional data
+that we can process very quickly.
+
+This feature is only supported in Vim.
+
+For example, here is a function with classic highlighting:
+
+![highliting-classic](https://user-images.githubusercontent.com/10584846/173137003-a265e8b0-84db-4993-98f0-03ee81b9de94.png)
+
+And here is the same function with semantic highlighting:
+
+![highliting-semantic](https://user-images.githubusercontent.com/10584846/173137012-7547de0b-145f-45fa-ace3-18943acd2141.png)
+
+As you can see, the function calls, macros, etc. are correctly identified. 
+
+This can be enabled globally with `let g:ycm_enable_semantic_highlighting=1` or
+per buffer, by setting `b:ycm_enable_semantic_highlighting`.
+
+#### Customising the highlight groups
+
+YCM uses text properties (see `:help text-prop-intro`) for semantic
+highlighting. In order to customise the coloring, you can define the text
+properties that are used.
+
+If you define a text property named `YCM_HL_<token type>`, then it will be used
+in place of the defaults. The `<token type>` is defined as the Language Server
+Protocol semantic token type, defined in the [LSP Spec](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_semanticTokens).
+
+Some servers also use custom values. In this case, YCM prints a warning
+including the token type name that you can customise.
+
+For example, to render `parameter` tokens using the `Normal` highlight group,
+you can do this:
+
+```viml
+call prop_type_add( 'YCM_HL_parameter', { 'highlight': 'Normal' } )
+```
+
+More generally, this pattern can be useful for customising the groups:
+
+```viml
+let MY_YCM_HIGHLIGHT_GROUP = {
+      \   'typeParameter': 'PreProc',
+      \   'parameter': 'Normal',
+      \   'variable': 'Normal',
+      \   'property': 'Normal',
+      \   'enumMember': 'Normal',
+      \   'event': 'Special',
+      \   'member': 'Normal',
+      \   'method': 'Normal',
+      \   'class': 'Special',
+      \   'namespace': 'Special',
+      \ }
+
+for tokenType in keys( MY_YCM_HIGHLIGHT_GROUP )
+  call prop_type_add( 'YCM_HL_' . tokenType,
+                    \ { 'highlight': MY_YCM_HIGHLIGHT_GROUP[ tokenType ] } )
+endfor
+```
+
+## Inlay hints
+
+**NOTE**: Highly experimental feature, requiring Vim 9.0.214 or later (not
+supported in NeoVim).
+
+When `g:ycm_enable_inlay_hints` (globally) or `b:ycm_enable_inlay_hints` (for a
+specific buffer) is set to `1`, then YCM will insert inlay hints as supported by
+the language semantic engine.
+
+An inlay hint is text rendered on the screen which is not part of the buffer and
+is often used to mark up the type or name of arguments, parameters, etc. which
+help the developer understand the semantics of the code.
+
+Here are some examples:
+
+* C
+
+![c-inlay](https://user-images.githubusercontent.com/10584846/185708054-68074fc0-e50c-4a65-887c-da6f372b8982.png)
+
+* TypeScript
+
+![ts-inlay](https://user-images.githubusercontent.com/10584846/185708156-b52970ce-005f-4f0b-97e7-bdf8feeefedc.png)
+
+* Go
+
+![go-inlay](https://user-images.githubusercontent.com/10584846/185708242-e42dab6f-1847-46f1-8585-2d9f2c8a76dc.png)
+
+### Highlight groups
+
+By default, YCM renders the inlay hints with the `NonText` highlight group. To
+override this, define the `YcmInlayHint` highlight yourself, e.g. in your
+`.vimrc`:
+
+```viml
+hi link YcmInlayHint Comment
+```
+
+Similar to semantic highlighting above, you can override specific highlighting
+for different inlay hint types by defining text properties named after the kind
+of inlay hint, for example:
+
+```viml
+call prop_type_add( 'YCM_INLAY_Type', #{ highlight: 'Comment' } )
+```
+
+The list of inlay hint kinds can be found in `python/ycm/inlay_hints.py`
+
+### Options
+
+* `g:ycm_enable_inlay_hints` or `b:ycm_enable_inlay_hints` - enable/disable
+  globally or for local buffer
+* `g:ycm_clear_inlay_hints_in_insert_mode` - set to `1` to remove all inlay
+  hints when entering insert mode and reinstate them when leaving insert mode
+
+### Toggling
+
+Inlay hints can add a lot of text to the screen and may be distracting. You can
+toggle them on/off instantly, by mapping something to
+`<Plug>(YCMToggleInlayHints)`, for example:
+
+```viml
+nnoremap <silent> <localleader>h <Plug>(YCMToggleInlayHints)
+```
+
+No default mapping is provided for this due to the personal nature of mappings.
 
 ### General Semantic Completion
 
@@ -864,7 +1059,7 @@ performance. Users who rely on `override_filename` in their `.ycm_extra_conf.py`
 will need to stay on the old `libclang` engine. Instructions on how to stay on
 the old engine are available on [the wiki][libclang-instructions].
 
-Advantages of clangd over libclang include:
+Some of the features of clangd:
 
 - **Project wide indexing**: Clangd has both dynamic and static index support.
   The dynamic index stores up-to-date symbols coming from any files you are
@@ -875,7 +1070,7 @@ Advantages of clangd over libclang include:
   improves those using the above mentioned index information to contain
   project-wide information rather than just the current TU.
 - **Rename**: Clangd can perform semantic rename operations on the current
-  file, whereas libclang doesn’t support such functionality.
+  file, whereas libclang doesn't support such functionality.
 - **Code Completion**: Clangd can perform code completions at a lower latency
   than libclang; also, it has information about all the symbols in your
   project so it can suggest items outside your current TU and also provides
@@ -883,13 +1078,49 @@ Advantages of clangd over libclang include:
 - **Signature help**: Clangd provides signature help so that you can see the
   names and types of arguments when calling functions.
 - **Format Code**: Clangd provides code formatting either for the selected
-  lines or the whole file, whereas libclang doesn’t have such functionality.
-- **Performance**: Clangd has faster reparse and code completion times
+  lines or the whole file, whereas libclang doesn't have such functionality.
+- **Performance**: Clangd has faster re-parse and code completion times
   compared to libclang.
+
+#### Installation
+
+On supported architectures, the `install.py` script will download a suitable
+clangd (`--clangd-completer`) or libclang (`--clang-completer`) for you.
+Supported architectures are:
+
+* Linux glibc >= 2.31 (Intel, armv7-a, aarch64) - built on ubuntu 20.04
+* MacOS >=10.15 (Intel, arm64)
+  - For Intel, compatibility per clang.llvm.org downloads
+  - For arm64, macOS 10.15+
+* Windows (Intel) - compatibility per clang.llvm.org downloads
+
+***clangd***:
+
+Typically, clangd is installed by the YCM installer (either with `--all` or with
+`--clangd-completer`). This downloads a pre-built `clangd` binary for your
+architecture. If your OS or architecture is not supported or too old, you can
+install a compatible `clangd` and use [`g:ycm_clangd_binary_path`]() to point to
+it.
+
+***libclang***:
+
+`libclang` can be enabled also with `--all` or `--clang-completer`. As with
+`clangd`, YCM will try and download a version of `libclang` that is suitable for
+your environment, but again if your environment can't be supported, you can
+build or acquire `libclang` for yourself and specify it when building, as:
+
+```
+$ EXTRA_CMAKE_ARGS='-DPATH_TO_LLVM_ROOT=/path/to/your/llvm' ./install.py --clang-completer --system-libclang
+```
+
+Please note that if using custom `clangd` or `libclang` it _must_ match the
+version that YCM requires. Currently YCM requires ***clang 17.0.1***.
+
+#### Compile flags
 
 In order to perform semantic analysis such as code completion, `GoTo` and
 diagnostics, YouCompleteMe uses `clangd`, which makes use of
-clang compiler, sometimes also referred to as llvm. Like any compiler,
+clang compiler, sometimes also referred to as LLVM. Like any compiler,
 clang also requires a set of compile flags in order to parse your code. Simply
 put: If clang can't parse your code, YouCompleteMe can't provide semantic
 analysis.
@@ -1019,9 +1250,6 @@ your file.
 
 5. Edit a Java file from your project.
 
-For the best experience, we highly recommend at least Vim 8.1.1875 when using
-Java support with YouCompleteMe.
-
 #### Java Project Files
 
 In order to provide semantic analysis, the Java completion engine requires
@@ -1110,6 +1338,10 @@ The format of [build.gradle][gradle-project] files is way beyond the scope of
 this document, but we do recommend using the various tools that can generate
 them for you, if you're not familiar with them already.
 
+Some users have experienced issues with their jdt.ls  when using the Groovy
+language for their build.gradle. As such, try using
+[Kotlin](https://github.com/ycm-core/lsp-examples#kotlin) instead.
+
 #### Troubleshooting
 
 If you're not getting completions or diagnostics, check the server health:
@@ -1140,7 +1372,7 @@ YCM relies on [OmniSharp-Roslyn][] to provide completion and code navigation.
 OmniSharp-Roslyn needs a solution file for a C# project and there are two ways
 of letting YCM know about your solution files.
 
-#### Automaticly discovered solution files
+#### Automatically discovered solution files
 
 YCM will scan all parent directories of the file currently being edited and look
 for file with `.sln` extension.
@@ -1184,7 +1416,7 @@ def Settings( **kwargs ):
   }
 ```
 
-where `/path/to/virtual/environment/python` is the path to the Python used
+Here, `/path/to/virtual/environment/python` is the path to the Python used
 by the virtual environment you are working in. Typically, the executable can be
 found in the `Scripts` folder of the virtual environment directory on Windows
 and in the `bin` folder on other platforms.
@@ -1202,7 +1434,9 @@ be told about this path manipulation to support those dependencies. This can be
 done by creating a `.ycm_extra_conf.py` file at the root of the project. This
 file must define a `Settings( **kwargs )` function returning a dictionary with
 the list of paths to prepend to `sys.path` under the `sys_path` key. For
-instance, the following `.ycm_extra_conf.py`
+instance, the following `.ycm_extra_conf.py` adds the paths
+`/path/to/some/third_party/package` and `/path/to/another/third_party/package`
+at the start of `sys.path`:
 
 ```python
 def Settings( **kwargs ):
@@ -1213,9 +1447,6 @@ def Settings( **kwargs ):
     ]
   }
 ```
-
-adds the paths `/path/to/some/third_party/package` and
-`/path/to/another/third_party/package` at the start of `sys.path`.
 
 If you would rather prepend paths to `sys.path` with a Vim option, read the
 [Configuring through Vim options](#configuring-through-vim-options) section.
@@ -1261,7 +1492,7 @@ let g:ycm_extra_conf_vim_data = [
 let g:ycm_global_ycm_extra_conf = '~/global_extra_conf.py'
 ```
 
-and create the `~/global_extra_conf.py` file with the following contents:
+Then, create the `~/global_extra_conf.py` file with the following contents:
 
 ```python
 def Settings( **kwargs ):
@@ -1277,37 +1508,20 @@ setting one of the options. YCM will automatically pick the new values.
 
 ### Rust Semantic Completion
 
+YCM uses [rust-analyzer][] for Rust semantic completion.
+
+NOTE: Previously, YCM used [rls][] for rust completion. This is no longer
+supported, as the Rust community has decided on [rust-analyzer][] as the future
+of Rust tooling.
+
 Completions and GoTo commands within the current crate and its dependencies
 should work out of the box with no additional configuration (provided that you
 built YCM with the `--rust-completer` flag; see the [*Installation*
 section](#installation) for details). The install script takes care of
 installing [the Rust source code][rust-src], so no configuration is necessary.
 
-To [configure RLS](#lsp-configuration) look up [rls configuration options][
-rls-preferences]. The value of the `ls` key must be structured as in the
-following example:
-
-```python
-def Settings( **kwargs ):
-  if kwargs[ 'language' ] == 'rust':
-    return {
-        'ls': {
-            'rust': {
-                'features': ['http2','spnego'],
-                'all_targets': False,
-                'wait_to_build': 1500,
-            }
-        }
-    }
-```
-
-That is to say, `ls` should be paired with a dictionary containing a key `rust`,
-which should be paired with another dictionary in which the keys are RLS
-options.
-
-Also, for the time being, if you make changes to your `Cargo.toml` that RLS
-doesn't seem to recognize, you may need to restart it manually with
-`:YcmCompleter RestartServer`.
+`rust-analyzer` supports a myriad of options. These are configured using [LSP
+configuration](#lsp-configuration), and are [documented here](https://rust-analyzer.github.io/manual.html#configuration]).
 
 ### Go Semantic Completion
 
@@ -1316,8 +1530,19 @@ built YCM with the `--go-completer` flag; see the [*Installation*
 section](#installation) for details). The server only works for projects with
 the "canonical" layout.
 
-While YCM can configure [a LSP server](#lsp-configuration), currently `gopls`
-doesn't implement [the required notification][gopls-preferences].
+`gopls` also has a load of [documented options](https://github.com/golang/tools/blob/master/gopls/doc/settings.md).
+
+You can set these in your `.ycm_extra_conf.py`. For example, to set the build tags:
+
+```python
+def Settings( **kwargs ):
+  if kwargs[ 'language' ] == 'go':
+    return {
+       'ls': {
+         'build.buildFlags': [ '-tags=debug' ] }
+       }
+    }
+```
 
 ### JavaScript and TypeScript Semantic Completion
 
@@ -1333,7 +1558,7 @@ available on [the wiki][tern-instructions].
 
 All JavaScript and TypeScript features are provided by the [TSServer][] engine,
 which is included in the TypeScript SDK. To enable these features, install
-[Node.js and npm][npm-install] and call the `install.py` script with the
+[Node.js 18+ and npm][npm-install] and call the `install.py` script with the
 `--ts-completer` flag.
 
 [TSServer][] relies on [the `jsconfig.json` file][jsconfig.json] for JavaScript
@@ -1342,6 +1567,7 @@ project. Ensure the file exists at the root of your project.
 
 To get diagnostics in JavaScript, set the `checkJs` option to `true` in your
 `jsconfig.json` file:
+
 ```json
 {
     "compilerOptions": {
@@ -1354,7 +1580,7 @@ To get diagnostics in JavaScript, set the `checkJs` option to `true` in your
 
 C-family, C#, Go, Java, Python, Rust, and JavaScript/TypeScript languages are
 supported natively by YouCompleteMe using the [Clang][], [OmniSharp-Roslyn][],
-[Gopls][], [jdt.ls][], [Jedi][], [rls][], and [TSServer][] engines,
+[Gopls][], [jdt.ls][], [Jedi][], [rust-analyzer][], and [TSServer][] engines,
 respectively. Check the [installation](#installation) section for instructions
 to enable these features if desired.
 
@@ -1377,14 +1603,35 @@ let g:ycm_language_server =
   \     'cmdline': [ 'ra_lsp_server' ],
   \     'filetypes': [ 'rust' ],
   \     'project_root_files': [ 'Cargo.toml' ]
-  \   }
+  \   },
+  \   {
+  \     'name': 'godot',
+  \     'filetypes': [ 'gdscript' ],
+  \     'port': 6008,
+  \     'project_root_files': [ 'project.godot' ]
+  \    }
   \ ]
 ```
 
-`project_root_files` is an optional key, since not all servers need it.
+Each dictionary contains the following keys:
 
-When [configuring a LSP server](#lsp-configuration) the value of the `name` key
-will be used as the `kwargs[ 'language' ]`.
+* `name` (string, mandatory): When [configuring a LSP
+  server](#lsp-configuration) the value of the `name` key will be used as the
+  `kwargs[ 'language' ]`. Can be anything you like.
+* `filetypes` (list of string, mandatory): List of Vim filetypes this server
+  should be used for.
+* `project_root_files` (list of string, optional): List of filenames to search
+  for when trying to determine the project root.
+* `cmdline` (list of string, optional): If supplied, the server is started with
+  this command line (each list element is a command line word). Typically, the
+  server should be started with STDIO communication. If not supplied, `port`
+  must be supplied.
+* `port` (number, optional): If supplied, ycmd will connect to the server at
+  `localhost:<port>` using TCP (remote servers are not supported).
+* `capabilities` (dict, optional): If supplied, this is a dictionary that is
+  merged with the LSP client capabilities reported to the language server. This
+  can be used to enable or disable certain features, such as the support for
+  configuration sections (`workspace/configuration`).
 
 See [the LSP Examples](https://github.com/ycm-core/lsp-examples) project for more
 examples of configuring the likes of PHP, Ruby, Kotlin, and D.
@@ -1393,23 +1640,49 @@ examples of configuring the likes of PHP, Ruby, Kotlin, and D.
 
 Many LSP servers allow some level of user configuration. YCM enables this with
 the help of `.ycm_extra_conf.py` files. Here's an example of jdt.ls user
-configuration.
+examples of configuring the likes of PHP, Ruby, Kotlin, D, and many, many more.
 
 ```python
 def Settings( **kwargs ):
   if kwargs[ 'language' ] == 'java':
-    return { 'ls': { 'java.format.onType.enabled': True } }
+    return {
+      'ls': {
+        'java.format.onType.enabled': True
+      }
+    }
 ```
 
-The `ls` key tells YCM that the dictionary should be passed to thet LSP server.
+The `ls` key tells YCM that the dictionary should be passed to the LSP server.
 For each of the LSP server's configuration you should look up the respective
 server's documentation.
+
+Some servers request settings from arbitrary 'sections' of configuration. There
+is no concept of configuration sections in Vim, so you can specify an additional
+`config_sections` dictionary which maps section to a dictionary of config
+required by the server. For example:
+
+```python
+def Settings( **kwargs ):
+  if kwargs[ 'language' ] == 'java':
+    return {
+      'ls': {
+        'java.format.onType.enabled': True
+      },
+      'config_sections': {
+        'some section': {
+          'some option': 'some value'
+        }
+    }
+```
+
+The sections and options/values are complete server-specific and rarely well
+documented.
 
 #### Using `omnifunc` for semantic completion
 
 YCM will use your `omnifunc` (see `:h omnifunc` in Vim) as a source for semantic
 completions if it does not have a native semantic completion engine for your
-file's filetype. Vim comes with okayish omnifuncs for various languages like
+file's filetype. Vim comes with rudimentary omnifuncs for various languages like
 Ruby, PHP, etc. It depends on the language.
 
 You can get a stellar omnifunc for Ruby with [Eclim][]. Just make sure you have
@@ -1417,7 +1690,7 @@ the _latest_ Eclim installed and configured (this means Eclim `>= 2.2.*` and
 Eclipse `>= 4.2.*`).
 
 After installing Eclim remember to create a new Eclipse project within your
-application by typing `:ProjectCreate <path-to-your-project> -n ruby` inside vim
+application by typing `:ProjectCreate <path-to-your-project> -n ruby` inside Vim
 and don't forget to have `let g:EclimCompletionMethod = 'omnifunc'` in your
 vimrc. This will make YCM and Eclim play nice; YCM will use Eclim's omnifuncs as
 the data source for semantic completions and provide the auto-triggering and
@@ -1511,14 +1784,17 @@ You can also style the line that has the warning/error with these groups:
 - `YcmWarningLine`, which falls back to group `SyntasticWarningLine` if it
   exists
 
+Finally, you can also style the popup for the detailed diagnostics (it is shown
+if `g:ycm_show_detailed_diag_in_popup` is set) using the group `YcmErrorPopup`,
+which falls back to `ErrorMsg`.
+
 Note that the line highlighting groups only work when the
 [`g:ycm_enable_diagnostic_signs`](#the-gycm_enable_diagnostic_signs-option)
 option is set. If you want highlighted lines but no signs in the Vim gutter,
-ensure that your Vim version is 7.4.2201 or later and set the `signcolumn`
-option to `off` in your vimrc:
+set the `signcolumn` option to `no` in your vimrc:
 
 ```viml
-set signcolumn=off
+set signcolumn=no
 ```
 
 The syntax groups used to highlight regions of text with errors/warnings:
@@ -1532,6 +1808,65 @@ Here's how you'd change the style for a group:
 ```viml
 highlight YcmErrorLine guibg=#3f0000
 ```
+
+### Symbol Search
+
+***This feature requires Vim and is not supported in Neovim***
+
+YCM provides a way to search for and jump to a symbol in the current project or
+document when using supported languages.
+
+You can search for symbols in the current workspace when the `GoToSymbol`
+request is supported and the current document when `GoToDocumentOutline` is
+supported.
+
+Here's a quick demo: 
+
+[![asciicast](https://asciinema.org/a/4JmYLAaz5hOHbZDD0hbsQpY8C.svg)](https://asciinema.org/a/4JmYLAaz5hOHbZDD0hbsQpY8C)
+
+As you can see, you can type and YCM filters down the list as you type. The
+current set of matches are displayed in a popup window in the centre of the
+screen and you can select an entry with the keyboard, to jump to that position.
+Any matches are then added to the quickfix list.
+
+To enable:
+
+* `nmap <something> <Plug>(YCMFindSymbolInWorkspace)`
+* `nmap <something> <Plug>(YCMFindSymbolInDocument)`
+
+e.g.
+
+* `nmap <leader>yfw <Plug>(YCMFindSymbolInWorkspace)`
+* `nmap <leader>yfd <Plug>(YCMFindSymbolInDocument)`
+
+When searching, YCM opens a prompt buffer at the top of the screen for the
+input, and puts you in insert mode. This means that you can hit `<Esc>` to go
+into normal mode and use any other input commands that are supported in prompt
+buffers. As you type characters, the search is updated.
+
+Intially, results are queried from all open filetypes. You can hit `<C-f>` to
+switch to just the current filetype while the popup is open.
+
+While the popup is open, the following keys are intercepted:
+
+* `<C-j>`, `<Down>`, `<C-n>`, `<Tab>` - select the next item
+* `<C-k>`, `<Up>`, `<C-p>`, `<S-Tab>` - select the previous item
+* `<PageUp>`, `<kPageUp>` - jump up one screenful of items 
+* `<PageDown>`, `<kPageDown>` - jump down one screenful of items
+* `<Home>`, `<kHome>` - jump to first item
+* `<End>`, `<kEnd>` - jump to last item
+* `<CR>` - jump to the selected item
+* `<C-c>` cancel/dismiss the popup
+* `<C-f>` - toggle results from all file types or just the current filetype
+
+The search is also cancelled if you leave the prompt buffer window at any time,
+so you can use window commands `<C-w>...` for example.
+
+#### Closing the popup
+
+***NOTE***: Pressing `<Esc>` does not close the popup - you must use `Ctrl-c`
+for that, or use a window command (e.g. `<Ctrl-w>j`) or the mouse to leave the
+prompt buffer window.
 
 Commands
 --------
@@ -1573,6 +1908,12 @@ _Options_ section for details.
 This command shows the full diagnostic text when the user's cursor is on the
 line with the diagnostic.
 
+An options argument can be passed. If the argument is `popup` the diagnostic
+text will be displayed in a popup at cursor position.
+
+If you prefer the detailed diagnostic to always be shown in a popup, then
+`let g:ycm_show_detailed_diag_in_popup=1`.
+
 ### The `:YcmDebugInfo` command
 
 This will print out various debug information for the current file. Useful to
@@ -1609,6 +1950,11 @@ See the [file type feature summary](#quick-feature-summary) for an overview of
 the features available for each file type. See the _YcmCompleter subcommands_
 section for more information on the available subcommands and their usage.
 
+Some commands, like `Format` accept a range, like `:%YcmCompleter Format`.
+
+Some commands like `GetDoc` and the various `GoTo` commands respect modifiers,
+like `:rightbelow YcmCompleter GetDoc`, `:vertical YcmCompleter GoTo`.
+
 YcmCompleter Subcommands
 ------------------------
 
@@ -1641,6 +1987,13 @@ autocommand](#the-ycmquickfixopened-autocommand).
 Looks up the current line for a header and jumps to it.
 
 Supported in filetypes: `c, cpp, objc, objcpp, cuda`
+
+#### The `GoToAlternateFile` subcommand
+
+Jump to the associated file, as defined by the language server. Typically this
+will jump you to the associated header file for a c or c++ translation unit.
+
+Supported in filetypes: `c, cpp, objc, objcpp, cuda` (clangd only)
 
 #### The `GoToDeclaration` subcommand
 
@@ -1686,6 +2039,14 @@ latency.
 
 Supported in filetypes: `c, cpp, objc, objcpp, cuda`
 
+#### The `GoToSymbol <symbol query>` subcommand
+
+Finds the definition of all symbols matching a specified string. Note that this
+does not use any sort of smart/fuzzy matching. However, an [interactive symbol
+search](#symbol-search) is also available.
+
+Supported in filetypes: `c, cpp, objc, objcpp, cuda, cs, java, javascript, python, typescript`
+
 #### The `GoToReferences` subcommand
 
 This command attempts to find all of the references within the project to the
@@ -1716,6 +2077,22 @@ Looks up the symbol under the cursor and jumps to the definition of its type
 e.g. if the symbol is an object, go to the definition of its class.
 
 Supported in filetypes: `go, java, javascript, typescript`
+
+#### The `GoToDocumentOutline` subcommand
+
+Provides a list of symbols in current document, in the quickfix list. See also
+[interactive symbol search](#symbol-search).
+
+Supported in filetypes: `c, cpp, objc, objcpp, cuda, go, java, rust`
+
+#### The `GoToCallers` and `GoToCallees` subcommands
+
+Populate the quickfix list with the callers, or callees respectively, of the
+function associated with the current cursor position. The semantics of this
+differ depending on the filetype and language server.
+
+Only supported for LSP servers which provide the `callHierarchyProvider`
+capability.
 
 ### Semantic Information Commands
 
@@ -1794,6 +2171,27 @@ under the cursor. Depending on the file type, this includes things like:
 * Python docstrings,
 * etc.
 
+The documentation is opened in the preview window, and options like
+`previewheight` are respected. If you would like to customise the height and
+position of this window, we suggest a custom command that:
+
+* Sets `previewheight` temporarily
+* Runs the `GetDoc` command with supplied modifiers
+* Restores `previewheight`.
+
+For example:
+
+```viml
+command -count ShowDocWithSize
+  \ let g:ph=&previewheight 
+  \ <bar> set previewheight=<count>
+  \ <bar> <mods> YcmCompleter GetDoc
+  \ <bar> let &previewheight=g:ph
+```
+
+You can then use something like `:botright vertical 80ShowDocWithSize`. Here's an
+example of that: https://asciinema.org/a/hE6Pi1gU6omBShwFna8iwGEe9
+
 Supported in filetypes: `c, cpp, objc, objcpp, cuda, cs, go, java, javascript,
 python, typescript, rust`
 
@@ -1818,23 +2216,35 @@ undone, and never saves or writes files to the disk.
 
 #### The `FixIt` subcommand
 
-Where available, attempts to make changes to the buffer to correct diagnostics
-on the current line. Where multiple suggestions are available (such as when
-there are multiple ways to resolve a given warning, or where multiple
-diagnostics are reported for the current line), the options are presented
-and one can be selected.
+Where available, attempts to make changes to the buffer to correct diagnostics,
+or perform refactoring, on the current line or selection. Where multiple
+suggestions are available (such as when there are multiple ways to resolve a
+given warning, or where multiple diagnostics are reported for the current line,
+or multiple refactoring tweaks are available), the options are presented and
+one can be selected.
 
 Completers which provide diagnostics may also provide trivial modifications to
 the source in order to correct the diagnostic. Examples include syntax errors
 such as missing trailing semi-colons, spurious characters, or other errors which
-the semantic engine can deterministically suggest corrections.
+the semantic engine can deterministically suggest corrections. A small demo
+presenting how diagnostics can be fixed with clangd:
+
+![YcmCompleter-FixIt-OnDiagnostic](https://user-images.githubusercontent.com/17928698/206855014-9131a49b-87e8-4ed4-8d91-f2fe7808a0b9.gif)
+
+Completers (LSPs) may also provide refactoring tweaks, which may be available
+even when no diagnostic is presented for the current line. These include
+function extraction, variable extraction, `switch` population, constructor
+generation, ... The tweaks work for a selection as well. Consult your LSP for
+available refactorings. A demonstration of refactoring capabilities with clangd:
+
+![YouCompleter-FixIt-Refactoring](https://user-images.githubusercontent.com/17928698/206855713-3588c8de-d0f5-4725-b65e-bc51110252cc.gif)
 
 If no fix-it is available for the current line, or there is no diagnostic on the
 current line, this command has no effect on the current buffer. If any
 modifications are made, the number of changes made to the buffer is echo'd and
 the user may use the editor's undo command to revert.
 
-When a diagnostic is available, and `g:ycm_echo_current_diagnostic` is set to 1,
+When a diagnostic is available, and `g:ycm_echo_current_diagnostic` is enabled,
 then the text ` (FixIt)` is appended to the echo'd diagnostic when the
 completer is able to add this indication. The text ` (FixIt available)` is
 also appended to the diagnostic text in the output of the `:YcmDiags` command
@@ -1858,7 +2268,19 @@ files. Rename operations may involve changes to multiple files, which may or may
 not be open in Vim buffers at the time. YouCompleteMe handles all of this for
 you. The behavior is described in [the following section](#multi-file-refactor).
 
-Supported in filetypes: `c, cpp, objc, objcpp, cuda, java, javascript, typescript, rust, cs`
+Supported in filetypes: `c, cpp, objc, objcpp, cuda, java, javascript, python, typescript, rust, cs`
+
+#### Python refactorings
+
+The following additional commands are supported for python:
+
+* `RefactorInline`
+* `RefactorExtractVariable`
+* `RefactorExtractFunction`
+
+See the [jedi docs][jedi-refactor-doc] for what they do.
+
+Supported in filetypes: `python`
 
 #### Multi-file Refactor
 
@@ -1917,17 +2339,16 @@ flags.
 
 #### The `ExecuteCommand <args>` subcommand
 
-Some LSP completers (currently Rust and Java completers) support executing
-server specific commands. Consult the [rls][] and [jdt.ls][] respective
-documentations to find out what commands are supported and which arguments are
-expected.
+Some LSP completers (currently only Java completers) support executing
+server specific commands. Consult the [jdt.ls][] documentation to find out
+what commands are supported and which arguments are expected.
 
 The support for `ExecuteCommand` was implemented to support plugins like
-[vimspector][] to debug java, but isn't limited to that specific use case.
+[Vimspector][] to debug java, but isn't limited to that specific use case.
 
 #### The `RestartServer` subcommand
 
-Restarts the semantic-engine-as-localhost-server for those semantic engines that
+Restarts the downstream semantic engine server for those semantic engines that
 work as separate servers that YCM talks to.
 
 Supported in filetypes: `c, cpp, objc, objcpp, cuda, cs, go, java, javascript, rust, typescript`
@@ -1950,6 +2371,7 @@ Get the number of YCM Diagnostic errors. If no errors are present, this function
 returns 0.
 
 For example:
+
 ```viml
   call youcompleteme#GetErrorCount()
 ```
@@ -1965,6 +2387,7 @@ Get the number of YCM Diagnostic warnings. If no warnings are present, this
 function returns 0.
 
 For example:
+
 ```viml
   call youcompleteme#GetWarningCount()
 ```
@@ -2004,12 +2427,56 @@ conditions.
 The arguments to the function are the same as the arguments to the
 `:YcmCompleter` ex command, e.g. the name of the subcommand, followed by any
 additional subcommand arguments. As with the `YcmCompleter` command, if the
-first argument is `ft=<filetype>` the request is targetted at the specified
+first argument is `ft=<filetype>` the request is targeted at the specified
 filetype completer. This is an advanced usage and not necessary in most cases.
 
 NOTE: The request is run synchronously and blocks Vim until the response is
 received, so we do not recommend running this as part of an autocommand that
 triggers frequently.
+
+### The `youcompleteme#GetCommandResponseAsync( callback, ... )` function
+
+This works exactly like `youcompleteme#GetCommandResponse`, except that instead
+of returning the result, you supply a `callback` argument. This argument must be
+a `FuncRef` to a function taking a single argument `response`. This callback
+will be called with the command response at some point later, or immediately.
+
+As with `youcompleteme#GetCommandResponse()`, this function will call the
+callback with `''` (an empty string) if the request is not sent, or if there was
+some sort of error.
+
+Here's an example that's similar to the one above:
+
+```viml
+
+let s:ycm_hover_popup = -1
+function! s:ShowDataPopup( response ) abort
+  if response == ''
+    return
+  endif
+
+  call popup_hide( s:ycm_hover_popup )
+  let s:ycm_hover_popup = popup_atcursor( balloon_split( response ), {} )
+endfunction
+
+function! s:GetData() abort
+  call youcompleteme#GetCommandResponseAsync(
+    \ function( 's:ShowDataPopup' ),
+    \ 'GetDoc' )
+endfunction
+
+autocommand CursorHold * call s:GetData()
+```
+
+Again, see [`g:ycm_auto_hover`](#the-gycm_auto_hover-option) for proper hover
+support.
+
+**NOTE**: The callback may be called immediately, in the stack frame that called
+this function.
+
+**NOTE**: Only one command request can be outstanding at once. Attempting to
+request a second responses while the first is outstanding will result in the
+second callback being immediately called with `''`.
 
 Autocommands
 ------------
@@ -2022,6 +2489,7 @@ opened to the bottom of the current window and its height is set to fit all
 entries. This behavior can be overridden by using the `YcmLocationOpened`
 autocommand which is triggered while the cursor is in the location list window.
 For instance:
+
 ```viml
 function! s:CustomizeYcmLocationWindow()
   " Move the window to the top of the screen.
@@ -2043,6 +2511,7 @@ is opened to full width at the bottom of the screen and its height is set to fit
 all entries. This behavior can be overridden by using the `YcmQuickFixOpened`
 autocommand which is triggered while the cursor is in the quickfix window. For
 instance:
+
 ```viml
 function! s:CustomizeYcmQuickFixWindow()
   " Move the window to the top of the screen.
@@ -2123,6 +2592,46 @@ Default: `50`
 let g:ycm_max_num_candidates = 50
 ```
 
+### The `g:ycm_max_num_candidates_to_detail` option
+
+Some completion engines require completion candidates to be 'resolved' in order
+to get detailed info such as inline documentation, method signatures etc.  This
+information is displayed by YCM in the preview window, or if `completeopt`
+contains `popup`, in the info popup next to the completion menu.
+
+By default, if the info popup is in use, and there are more than 10 candidates,
+YCM will defer resolving candidates until they are selected in the completion
+menu.  Otherwise, YCM must resolve the details upfront, which can be costly.
+
+If neither `popup` nor `preview` are in `completeopt`, YCM disables resolving
+altogether as the information would not be displayed.
+
+This setting can be used to override these defaults and  controls the number of
+completion candidates that should be resolved upfront. Typically users do not
+need to change this, as YCM will work out an appropriate value based on your
+`completeopt` and `g:ycm_add_preview_to_completeopt` settings. However, you may
+override this calculation by setting this value to a number:
+
+* `-1` - Resolve all candidates up front
+* `0` - Never resolve any candidates up front.
+* `> 0` - Resolve up to this many candidates up front. If the number of
+  candidates is greater than this value, no candidates are resolved.
+
+In the later two cases, if `completeopt` contains `popup`, then candidates are
+resolved on demand asynchronously.
+
+Default:
+
+* `0` if neither `popup` nor `preview` are in `completeopt`.
+* `10` if `popup` is in completeopt.
+* `-1` if `preview` is in completeopt.
+
+Example:
+
+```viml
+let g:ycm_max_num_candidates_to_detail = 0
+```
+
 ### The `g:ycm_max_num_identifier_candidates` option
 
 This option controls the maximum number of completion suggestions from the
@@ -2150,6 +2659,21 @@ as-you-type popup) _and_ the semantic triggers (the popup you'd get after typing
 If you want to just turn off the identifier completer but keep the semantic
 triggers, you should set `g:ycm_min_num_of_chars_for_completion` to a high
 number like `99`.
+
+When `g:ycm_auto_trigger` is `0`, YCM sets the `completefunc`, so that you can
+manually trigger normal completion using `C-x C-u`.
+
+If you want to map something else to trigger completion, such as `C-d``,
+then you can map it to `<plug>(YCMComplete)`. For example:
+
+```viml
+let g:ycm_auto_trigger = 0
+imap <c-d> <plug>(YCMComplete)
+```
+
+NOTE: It's not possible to map one of the keys in
+`g:ycm_key_list_select_completion` (or similar) to `<plug>(YCMComplete)`. In
+practice that means that you can't use `<Tab>` for this.
 
 Default: `1`
 
@@ -2189,6 +2713,20 @@ Default: `{'*': 1}`
 let g:ycm_filetype_whitelist = {'*': 1}
 ```
 
+** Completion in buffers with no filetype **
+
+There is one exception to the above rule. YCM supports completion in buffers
+with no filetype set, but this must be _explicitly_ whitelisted. To identify
+buffers with no filetype, we use the `ycm_nofiletype` pseudo-filetype. To enable
+completion in buffers with no filetype, set:
+
+```viml
+let g:ycm_filetype_whitelist = {
+  \ '*': 1,
+  \ 'ycm_nofiletype': 1
+  \ }
+```
+
 ### The `g:ycm_filetype_blacklist` option
 
 This option controls for which Vim filetypes (see `:h filetype`) should YCM be
@@ -2215,6 +2753,10 @@ let g:ycm_filetype_blacklist = {
       \ 'mail': 1
       \}
 ```
+
+In addition, `ycm_nofiletype` (representing buffers with no filetype set)
+is blacklisted if `ycm_nofiletype` is not _explicitly_ whitelisted (using
+`g:ycm_filetype_whitelist`).
 
 ### The `g:ycm_filetype_specific_completion_to_disable` option
 
@@ -2249,6 +2791,7 @@ being filetype strings (like `python`, `cpp`, etc.) and values being unimportant
 
 The `*` key is special and matches all filetypes. Use this key if you want to
 completely disable filepath completion:
+
 ```viml
 let g:ycm_filepath_blacklist = {'*': 1}
 ```
@@ -2353,9 +2896,23 @@ let g:ycm_enable_diagnostic_highlighting = 1
 
 ### The `g:ycm_echo_current_diagnostic` option
 
-When this option is set, YCM will echo the text of the diagnostic present on the
-current line when you move your cursor to that line. If a `FixIt` is available
-for the current diagnostic, then ` (FixIt)` is appended.
+When this option is set to 1, YCM will echo the text of the diagnostic present
+on the current line when you move your cursor to that line. If a `FixIt` is
+available for the current diagnostic, then ` (FixIt)` is appended.
+
+If you have a Vim that supports virtual text, you can set this option
+to the string `virtual-text`, and the diagnostic will be displayed inline with
+the text, right aligned in the window and wrapping to the next line if there is
+not enough space, for example:
+
+![Virtual text diagnostic demo][diagnostic-echo-virtual-text1]
+
+![Virtual text diagnostic demo][diagnostic-echo-virtual-text2]
+
+**NOTE**: It's _strongly_ recommended to also set
+`g:ycm_update_diagnostics_in_insert_mode` to `0` when using `virtual-text` for
+diagnostics. This is due to the increased amount distraction provided by
+drawing diagnostics next to your input position.
 
 This option is part of the Syntastic compatibility layer; if the option is not
 set, YCM will fall back to the value of the `g:syntastic_echo_current_error`
@@ -2363,8 +2920,17 @@ option before using this option's default.
 
 Default: `1`
 
+Valid values:
+
+* `0` - disabled
+* `1` - echo diagnostic to the command area
+* `'virtual-text'` - display the dignostic to the right of the line in the
+  window using virtual text
+
 ```viml
 let g:ycm_echo_current_diagnostic = 1
+" Or, when you have Vim supporting virtual text
+let g:ycm_echo_current_diagnostic = 'virtual-text'
 ```
 
 ### The `g:ycm_auto_hover` option
@@ -2401,6 +2967,7 @@ buffer-local variable can be set to a dictionary with the following keys:
 * `command`: The YCM completer subcommand which should be run on hover
 * `syntax`: The syntax to use (as in `set syntax=`) in the popup window for
   highlighting.
+* `popup_params`: The params passed to a popup window which gets opened.
 
 For example, to use C/C++ syntax highlighting in the popup for C-family
 languages, add something like this to your vimrc:
@@ -2414,6 +2981,25 @@ augroup MyYCMCustom
     \ }
 augroup END
 ```
+
+You can also modify the opened popup with `popup_params` key.
+For example, you can limit the popup's maximum width and add a border to it:
+
+```viml
+augroup MyYCMCustom
+  autocmd!
+  autocmd FileType c,cpp let b:ycm_hover = {
+    \ 'command': 'GetDoc',
+    \ 'syntax': &filetype
+    \ 'popup_params': {
+    \     'maxwidth': 80,
+    \     'border': [],
+    \     'borderchars': ['─', '│', '─', '│', '┌', '┐', '┘', '└'],
+    \   },
+    \ }
+augroup END
+```
+See `:help popup_create-arguments` for the list of available popup window options.
 
 Default: `'CursorHold'`
 
@@ -2432,18 +3018,24 @@ not render it.
 The following filter types are supported:
 
 - "regex": Accepts a string [regular expression][python-re]. This type matches
-when the regex (treated as case-insensitive) is found in the diagnostic text.
+when the regex (treated as case-insensitive) is found anywhere in the diagnostic
+text (`re.search`, not `re.match`)
 - "level": Accepts a string level, either "warning" or "error." This type
-matches when the diagnostic has the same level.
+matches when the diagnostic has the same level, that is,
+specifying `level: "error"` will remove **all** errors from the diagnostics.
 
 **NOTE:** The regex syntax is **NOT** Vim's, it's [Python's][python-re].
 
 Default: `{}`
 
+The following example will do, for java filetype only:
+- Remove **all** error level diagnostics, and,
+- Also remove anything that contains `ta<something>co`
+
 ```viml
 let g:ycm_filter_diagnostics = {
   \ "java": {
-  \      "regex": [ ".*taco.*", ... ],
+  \      "regex": [ "ta.+co", ... ],
   \      "level": "error",
   \      ...
   \    }
@@ -2462,6 +3054,8 @@ This option is part of the Syntastic compatibility layer; if the option is not
 set, YCM will fall back to the value of the
 `g:syntastic_always_populate_loc_list` option before using this option's
 default.
+
+Note: if YCM's errors aren't visible, it might be that YCM is updating an older location list. See `:help :lhistory` and `:lolder`.
 
 Default: `0`
 
@@ -2703,15 +3297,23 @@ let g:ycm_csharp_insert_namespace_expr = ''
 
 When this option is set to `1`, YCM will add the `preview` string to Vim's
 `completeopt` option (see `:h completeopt`). If your `completeopt` option
-already has `preview` set, there will be no effect. You can see the current
-state of your `completeopt` setting with `:set completeopt?` (yes, the question
-mark is important).
+already has `preview` set, there will be no effect. Alternatively, when set to
+`popup` and your version of Vim supports popup windows (see `:help popup`), the
+`popup` string will be used instead. You can see the current state of your
+`completeopt` setting with `:set completeopt?` (yes, the question mark is
+important).
 
 When `preview` is present in `completeopt`, YCM will use the `preview` window at
 the top of the file to store detailed information about the current completion
 candidate (but only if the candidate came from the semantic engine). For
 instance, it would show the full function prototype and all the function
 overloads in the window if the current completion is a function name.
+
+When `popup` is present in `completeopt`, YCM will instead use a `popup`
+window to the side of the completion popup for storing detailed information
+about the current completion candidate. In addition, YCM may truncate the
+detailed completion information in order to give the popup sufficient room
+to display that detailed information.
 
 Default: `0`
 
@@ -2807,9 +3409,10 @@ let g:ycm_key_list_stop_completion = ['<C-y>']
 
 This option controls the key mapping used to invoke the completion menu for
 semantic completion. By default, semantic completion is triggered automatically
-after typing `.`, `->` and `::` in insert mode (if semantic completion support
-has been compiled in). This key mapping can be used to trigger semantic
-completion anywhere. Useful for searching for top-level functions and classes.
+after typing characters appropriate for the language, such as `.`, `->`, `::`,
+etc. in insert mode (if semantic completion support has been compiled in). This
+key mapping can be used to trigger semantic completion anywhere. Useful for
+searching for top-level functions and classes.
 
 Console Vim (not Gvim or MacVim) passes `<Nul>` to Vim when the user types
 `<C-Space>` so YCM will make sure that `<Nul>` is used in the map command when
@@ -2833,10 +3436,24 @@ the user's cursor is on the line with the diagnostic. It basically calls
 
 Setting this option to an empty string will make sure no mapping is created.
 
+If you prefer the detailed diagnostic to be shown in a popup, then
+`let g:ycm_show_detailed_diag_in_popup=1`.
+
 Default: `<leader>d`
 
 ```viml
 let g:ycm_key_detailed_diagnostics = '<leader>d'
+```
+
+### The `g:ycm_show_detailed_diag_in_popup` option
+
+Makes `:YcmShowDetailedDiagnostic` always show in a popup rather than echoing to
+the command line.
+
+Default: 0
+
+```viml
+let g:ycm_show_detailed_diag_in_popup = 0
 ```
 
 ### The `g:ycm_global_ycm_extra_conf` option
@@ -3004,19 +3621,17 @@ To customize the way a new window is split, prefix the `GoTo*` command with one
 of the following modifiers: `:aboveleft`, `:belowright`, `:botright`,
 `:leftabove`, `:rightbelow`, `:topleft`, and `:vertical`. For instance, to
 split vertically to the right of the current window, run the command:
+
 ```viml
 :rightbelow vertical YcmCompleter GoTo
 ```
 
 To open in a new tab page, use the `:tab` modifier with the `'split'` or
 `'split-or-existing-window'` options e.g.:
+
 ```viml
 :tab YcmCompleter GoTo
 ```
-
-**NOTE:** command modifiers were added in Vim 7.4.1898. If you are using an
-older version, you can still configure this by setting the option to one of the
-deprecated values: `'vertical-split'`, `'new-tab'`, or `'new-or-existing-tab'`.
 
 Default: `'same-buffer'`
 
@@ -3089,13 +3704,15 @@ let g:ycm_clangd_uses_ycmd_caching = 1
 
 ### The `g:ycm_language_server` option
 
-This option lets YCM use an arbitrary LSP server, not unlike coc.nvim and others.
-However, the officially supported completers are favoured over custom LSP ones,
-so overriding an existing completer means first making sure YCM won't choose
-that existing completer in the first place.
+This option lets YCM use an arbitrary Language Server Protocol (LSP) server, not
+unlike many other completion systems.  The officially supported completers are
+favoured over custom LSP ones, so overriding an existing completer means first
+making sure YCM won't choose that existing completer in the first place.
 
 A simple working example of this option can be found in the section called
 ["Semantic Completion for Other Languages"](#semantic-completion-for-other-languages).
+
+Many working examples can be found in the YCM [lsp-examples][] repo.
 
 Default: `[]`
 
@@ -3115,6 +3732,19 @@ Default: `0`
 ```viml
 " Disable signature help
 let g:ycm_disable_signature_help = 1
+```
+
+### The `g:ycm_signature_help_disable_syntax` option
+
+Set this to 1 to disable syntax highlighting in the signature help popup. Thiis
+can help if your colourscheme doesn't work well with the default highliting and
+inverse video.
+
+Default: `0`
+
+```viml
+" Disable signature help syntax highliting
+let g:ycm_signature_help_disable_syntax = 1
 ```
 
 ### The `g:ycm_gopls_binary_path` option
@@ -3140,10 +3770,15 @@ let g:ycm_gopls_args = []
 
 ### The `g:ycm_rls_binary_path` and `g:ycm_rustc_binary_path` options
 
-Similar to [the `gopls` path](#the-gycm-gopls-binaty-path), these two options
-tell YCM which `rls` and `rustc` to use.
+YCM no longer uses RLS for rust, and these options are therefore no longer
+supported.
 
-NOTE: You *need* to either set both or none of these two.
+To use a custom rust-analyzer, see `g:ycm_rust_toolchain_root`.
+
+### The `g:ycm_rust_toolchain_root` option
+
+Optionally specify the path to a custom rust toolchain including at least a
+supported version of `rust-analyzer`.
 
 
 ### The `g:ycm_tsserver_binary_path` option
@@ -3156,6 +3791,25 @@ tells YCM where is the TSServer executable located.
 Similar to [the `gopls` path](#the-gycm-gopls-binaty-path), this option
 tells YCM where is the Omnisharp-Roslyn executable located.
 
+### The `g:ycm_update_diagnostics_in_insert_mode` option
+
+With async diagnostics, LSP servers might send new diagnostics mid-typing.
+If seeing these new diagnostics while typing is not desired, this option can
+be set to 0.
+
+When this option is set to `0`, diagnostic signs, virtual text and highlights
+are cleared when entering insert mode and replaced when leaving insert mode.
+This reduces visual noise while editing.
+
+In addition, this option is recommended when `g:ycm_echo_current_diagnostic` is
+set to `virtual-text` as it prevents updating the virtual text while you are
+typing.
+
+Default: `1`
+
+```viml
+let g:ycm_update_diagnostics_in_insert_mode = 1
+```
 
 FAQ
 ---
@@ -3186,14 +3840,29 @@ The latest version of the plugin is available at
 
 The author's homepage is <https://val.markovic.io>.
 
-Please do **NOT** go to #vim on freenode for support. Please contact the
-YouCompleteMe maintainers directly using the [contact details](#contact).
+Please do **NOT** go to #vim, reddit, or stack overflow for support. Please
+contact the YouCompleteMe maintainers directly using the [contact
+details](#contact).
 
 License
 -------
 
 This software is licensed under the [GPL v3 license][gpl].
 © 2015-2018 YouCompleteMe contributors
+
+Sponsorship
+-----------
+
+If you like YCM so much that you're wiling to part with your hard-earned cash, please consider donating to one of the following charities, which are meaningful to the current maintainers (in no particular order):
+
+* [Hector's Greyhound Rescue](https://www.hectorsgreyhoundrescue.org)
+* [Be Humane](https://www.budihuman.rs/en)
+* [Cancer Research UK](https://www.cancerresearchuk.org)
+* [ICCF Holland](https://iccf.nl)
+* Any charity of your choosing.
+
+Please note: The YCM maintainers do not specifically endorse nor necessarily have any relationship with the above charities. Disclosure: It is noted that one key maintainer is family with Trustees of Greyhound Rescue Wales.
+
 
 [ycmd]: https://github.com/ycm-core/ycmd
 [Clang]: https://clang.llvm.org/
@@ -3210,7 +3879,7 @@ This software is licensed under the [GPL v3 license][gpl].
 [ycmd_flags_example]: https://raw.githubusercontent.com/ycm-core/ycmd/66030cd94299114ae316796f3cad181cac8a007c/.ycm_extra_conf.py
 [compdb]: https://clang.llvm.org/docs/JSONCompilationDatabase.html
 [subsequence]: https://en.wikipedia.org/wiki/Subsequence
-[listtoggle]: https://github.com/ycm-core/ListToggle
+[listtoggle]: https://github.com/Valloric/ListToggle
 [vim-build]: https://github.com/ycm-core/YouCompleteMe/wiki/Building-Vim-from-source
 [tracker]: https://github.com/ycm-core/YouCompleteMe/issues?state=open
 [completer-api]: https://github.com/ycm-core/ycmd/blob/master/ycmd/completers/completer.py
@@ -3224,14 +3893,14 @@ This software is licensed under the [GPL v3 license][gpl].
 [Bear]: https://github.com/rizsotto/Bear
 [ygen]: https://github.com/rdnetto/YCM-Generator
 [Gopls]: https://github.com/golang/go/wiki/gopls
-[gopls-preferences]: https://github.com/golang/tools/blob/master/internal/lsp/server.go#L120
+[gopls-preferences]: https://github.com/golang/tools/blob/master/internal/lsp/server.go
 [TSServer]: https://github.com/Microsoft/TypeScript/tree/master/src/server
 [jsconfig.json]: https://code.visualstudio.com/docs/languages/jsconfig
 [tsconfig.json]: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html
 [vim-win-download]: https://github.com/vim/vim-win32-installer/releases
 [python-win-download]: https://www.python.org/downloads/windows/
-[visual-studio-download]: https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=15
-[mono-install-macos]: https://www.mono-project.com/docs/getting-started/install/mac/
+[visual-studio-download]: https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16
+[mono-install-macos]: https://www.mono-project.com/download/stable/
 [mono-install-linux]: https://www.mono-project.com/download/stable/#download-lin
 [go-install]: https://golang.org/doc/install
 [npm-install]: https://docs.npmjs.com/getting-started/installing-node#1-install-nodejs--npm
@@ -3239,7 +3908,7 @@ This software is licensed under the [GPL v3 license][gpl].
 [libclang-instructions]: https://github.com/ycm-core/YouCompleteMe/wiki/C-family-Semantic-Completion-through-libclang
 [Tern]: https://ternjs.net
 [rls]: https://github.com/rust-lang/rls
-[rls-preferences]: https://github.com/rust-lang/rls#configuration
+[rust-analyzer]: https://rust-analyzer.github.io
 [rust-src]: https://www.rust-lang.org/downloads.html
 [add-msbuild-to-path]: https://stackoverflow.com/questions/6319274/how-do-i-run-msbuild-from-the-command-line-using-windows-sdk-7-1
 [ccoc]: https://github.com/ycm-core/YouCompleteMe/blob/master/CODE_OF_CONDUCT.md
@@ -3248,7 +3917,7 @@ This software is licensed under the [GPL v3 license][gpl].
 [++enc]: http://vimdoc.sourceforge.net/htmldoc/editing.html#++enc
 [contributing-md]: https://github.com/ycm-core/YouCompleteMe/blob/master/CONTRIBUTING.md
 [jdt.ls]: https://github.com/eclipse/eclipse.jdt.ls
-[jdk-install]: https://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html
+[jdk-install]: https://adoptium.net/en-GB/temurin/releases
 [mvn-project]: https://maven.apache.org/guides/getting-started/maven-in-five-minutes.html
 [eclipse-project]: https://help.eclipse.org/oxygen/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Freference%2Fmisc%2Fproject_description_file.html
 [gradle-project]: https://docs.gradle.org/current/userguide/tutorial_java_projects.html
@@ -3263,6 +3932,10 @@ This software is licensed under the [GPL v3 license][gpl].
 [vimspector]: https://github.com/puremourning/vimspector
 [compiledb]: https://pypi.org/project/compiledb/
 [signature-help-pr]: https://github.com/ycm-core/ycmd/pull/1255
-[legacy-py2]: https://github.com/ycm-core/YouCompleteMe/tree/legacy-py2
 [wiki-faq]: https://github.com/ycm-core/YouCompleteMe/wiki/FAQ
 [wiki-full-install]: https://github.com/ycm-core/YouCompleteMe/wiki/Full-Installation-Guide
+[wiki-troubleshooting]: https://github.com/ycm-core/YouCompleteMe/wiki/Troubleshooting-steps-for-ycmd-server-SHUT-DOWN
+[lsp-examples]: https://github.com/ycm-core/lsp-examples
+[diagnostic-echo-virtual-text1]: https://user-images.githubusercontent.com/10584846/185707973-39703699-0263-47d3-82ac-639d52259bea.png
+[diagnostic-echo-virtual-text2]: https://user-images.githubusercontent.com/10584846/185707993-14ff5fd7-c082-4e5a-b825-f1364e619b6a.png
+[jedi-refactor-doc]: https://jedi.readthedocs.io/en/latest/docs/api.html#jedi.Script.extract_variable

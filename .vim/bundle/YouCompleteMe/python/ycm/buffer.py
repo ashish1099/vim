@@ -18,9 +18,8 @@
 from ycm import vimsupport
 from ycm.client.event_notification import EventNotification
 from ycm.diagnostic_interface import DiagnosticInterface
-
-DIAGNOSTIC_UI_FILETYPES = { 'cpp', 'cs', 'c', 'objc', 'objcpp', 'cuda',
-                            'javascript', 'typescript', 'typescriptreact' }
+from ycm.semantic_highlighting import SemanticHighlighting
+from ycm.inlay_hints import InlayHints
 
 
 # Emulates Vim buffer
@@ -36,12 +35,16 @@ class Buffer:
     self._parse_request = None
     self._should_resend = False
     self._diag_interface = DiagnosticInterface( bufnr, user_options )
+    self._open_loclist_on_ycm_diags = user_options[
+                                        'open_loclist_on_ycm_diags' ]
+    self.semantic_highlighting = SemanticHighlighting( bufnr )
+    self.inlay_hints = InlayHints( bufnr )
     self.UpdateFromFileTypes( filetypes )
 
 
   def FileParseRequestReady( self, block = False ):
-    return bool( self._parse_request and
-                 ( block or self._parse_request.Done() ) )
+    return ( bool( self._parse_request ) and
+             ( block or self._parse_request.Done() ) )
 
 
   def SendParseRequest( self, extra_data ):
@@ -61,6 +64,10 @@ class Buffer:
     self._parse_tick = self._ChangedTick()
 
 
+  def ParseRequestPending( self ):
+    return bool( self._parse_request ) and not self._parse_request.Done()
+
+
   def NeedsReparse( self ):
     return self._parse_tick != self._ChangedTick()
 
@@ -73,7 +80,7 @@ class Buffer:
 
   def UpdateDiagnostics( self, force = False ):
     if force or not self._async_diags:
-      self.UpdateWithNewDiagnostics( self._parse_request.Response() )
+      self.UpdateWithNewDiagnostics( self._parse_request.Response(), False )
     else:
       # We need to call the response method, because it might throw an exception
       # or require extra config confirmation, even if we don't actually use the
@@ -81,16 +88,19 @@ class Buffer:
       self._parse_request.Response()
 
 
-  def UpdateWithNewDiagnostics( self, diagnostics ):
-    self._diag_interface.UpdateWithNewDiagnostics( diagnostics )
+  def UpdateWithNewDiagnostics( self, diagnostics, async_message ):
+    self._async_diags = async_message
+    self._diag_interface.UpdateWithNewDiagnostics(
+        diagnostics,
+        not self._async_diags and self._open_loclist_on_ycm_diags )
 
 
   def UpdateMatches( self ):
     self._diag_interface.UpdateMatches()
 
 
-  def PopulateLocationList( self ):
-    return self._diag_interface.PopulateLocationList()
+  def PopulateLocationList( self, open_on_edit = False ):
+    return self._diag_interface.PopulateLocationList( open_on_edit )
 
 
   def GetResponse( self ):
@@ -117,10 +127,22 @@ class Buffer:
     return self._diag_interface.GetWarningCount()
 
 
+  def RefreshDiagnosticsUI( self ):
+    return self._diag_interface.RefreshDiagnosticsUI()
+
+
+  def ClearDiagnosticsUI( self ):
+    return self._diag_interface.ClearDiagnosticsUI()
+
+
+  def DiagnosticsForLine( self, line_number ):
+    return self._diag_interface.DiagnosticsForLine( line_number )
+
+
   def UpdateFromFileTypes( self, filetypes ):
     self._filetypes = filetypes
-    self._async_diags = not any( x in DIAGNOSTIC_UI_FILETYPES
-      for x in filetypes )
+    # We will set this to true if we ever receive any diagnostics asyncronously.
+    self._async_diags = False
 
 
   def _ChangedTick( self ):
