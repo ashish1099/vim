@@ -1,0 +1,1 @@
+/home/ashish/github/vim/.vim

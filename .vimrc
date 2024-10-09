@@ -55,20 +55,8 @@ let g:gitgutter_highlight_linenrs = 0
 " highlight GitGutterDelete guifg=#ff2222 ctermfg=1
 " highlight link GitGutterDeleteLine DiffText
 
-"Puppet
-" 0 is to disable plugin
-let g:loaded_syntastic_puppet_puppet_checker = 0
-
 set statusline+=%#warningmsg#
-set statusline+=%{SyntasticStatuslineFlag()}
 set statusline+=%*
-
-let g:syntastic_always_populate_loc_list = 1
-let g:syntastic_auto_loc_list = 1
-let g:syntastic_check_on_open = 1
-let g:syntastic_check_on_wq = 0
-
-"let g:syntastic_
 
 "http://stackoverflow.com/questions/20663169/vim-really-slow-with-long-yaml
 map BufNewFile,BufRead *.yaml,*.yml so ~/.vim/yaml.vim
