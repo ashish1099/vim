@@ -47,13 +47,13 @@ autocmd BufWritePre * StripWhitespace
 autocmd BufWritePre * retab
 
 let g:gitgutter_enabled = 1
-let g:gitgutter_highlight_lines = 1
-let g:gitgutter_highlight_linenrs = 1
+let g:gitgutter_highlight_lines = 0
+let g:gitgutter_highlight_linenrs = 0
 
-highlight GitGutterAdd    guifg=#009900 ctermfg=2
-highlight GitGutterChange guifg=#bbbb00 ctermfg=3
-highlight GitGutterDelete guifg=#ff2222 ctermfg=1
-highlight link GitGutterDeleteLine DiffText
+" highlight GitGutterAdd    guifg=#009900 ctermfg=2
+" highlight GitGutterChange guifg=#bbbb00 ctermfg=3
+" highlight GitGutterDelete guifg=#ff2222 ctermfg=1
+" highlight link GitGutterDeleteLine DiffText
 
 "Puppet
 " 0 is to disable plugin
@@ -75,8 +75,19 @@ map BufNewFile,BufRead *.yaml,*.yml so ~/.vim/yaml.vim
 
 let g:SuperTabDefaultCompletionType = "context"
 
-let g:auto_save = 1
-let g:auto_save_events = ["InsertLeave", "TextChanged"]
+" let g:auto_save = 1
+" let g:auto_save_events = ["InsertLeave", "TextChanged"]
+
+" Undo files
+if v:version > 702
+    set undofile            " Save undos after file closes
+    set undodir=/tmp        " Where to save the undo information
+                            " Since this is set to /tmp, the undo files will be
+                            " deleted when the server reboots.
+                            " But it is still better than not having it.
+    set undolevels=1000     " How many undos
+    set undoreload=10000    " Number of lines to save for undo
+endif
 
 execute pathogen#helptags()
 execute pathogen#infect()

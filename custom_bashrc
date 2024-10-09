@@ -21,8 +21,8 @@ HISTFILESIZE=1000000000
 HISTTIMEFORMAT="%F %T "
 
 # Aliases
-alias ashish_obmondo="ssh dev-ashish"
-alias production="cd /home/ashish/gitea/puppet/envs/production"
+alias linuxaid="cd /home/ashish/gitea/linuxaid"
+alias kubeaid="cd /home/ashish/gitea/kubeaid"
 alias nextcloud_ps="docker-compose -f /home/ashish/github/infra/docker-compose/nextcloud/docker-compose.yml ps"
 alias ddns_ps="docker-compose -f /home/ashish/github/infra/docker-compose/ddns/docker-compose.yml ps"
 alias aws-login='$(aws ecr get-login --no-include-email)'
